@@ -4,8 +4,105 @@ date: 2021-01-21 14:25:57
 tags:
 ---
 
+# io_uring 的底层接口
+
+正如在前一个文章中所建议的那样，您不太可能在正式的程序中使用低级别的 `io_uring` API。但是知道接口真正使用起来是什么样的方式总是一个好主意。为此，你将不得不绕过接口 `io_uring`，通过共享环缓冲区和相关 `io_uring` 系统调用直接显示给程序。一个很好的例子和一个简单的例子，可以很好地展示这个接口。为此，在这里，我们提供了一个模拟 Unix cat 实用程序的示例。为了保持简单，我们将创建一个程序，一次显示一个操作，等待它完成并显示下一个操作等等。虽然一个真正的程序也可以使用同步/阻塞调用来以这种方式完成工作，但这个程序的主要目的是让您熟悉 i/o 界面，而不会受到其他程序逻辑的干扰。
+
+## 熟悉readv（2）系统调用
+为了更好地理解这个示例，您需要熟悉 `readv(2)`系统调用。如果你不熟悉它，我建议你读一个更温和的介绍，然后回到这里继续。
+
+## 底层接口介绍
+它的接口很简单。有一个提交队列和一个完成队列。在提交队列中，您可以提交关于希望完成的各种操作的信息。例如，在我们当前的程序中，我们希望使用 readv (2)读取文件，因此我们放置一个提交队列请求，将其描述为提交队列条目(SQE)的一部分。此外，您可以放置多个请求。根据队列深度(您可以定义)允许的请求数量。这些操作可以是读、写等操作的混合。这些操作可以是读、写等操作的混合。然后，我们调用io_uring_enter()系统调用，告诉内核我们已经向提交队列添加了请求。一旦它完成了这些请求的处理，它将结果作为 CQE 的一部分放置在完成队列中，或者为每个相应的 SQE 放置一个完成队列条目。这些 CQEs 可以立即从用户空间访问，因为它们被放置在一个由内核和用户空间共享的缓冲区中。
+
+我们在前面已经讨论了 io 的这个特殊优点，但是聪明的读者会注意到这样一个接口: 用多个 i/o 请求填充一个队列，然后对每个 i/o 请求进行一个系统调用，
+而不是一个系统调用，这个接口已经更高效了。为了进一步提高效率，io_uring 支持一种模式，在这种模式下，内核会对你加入提交队列的条目进行轮询，
+而你甚至不需要调用 **`io_uring_enter ()`**来通知内核更新的提交队列条目。另一点需要注意的是，
+在 **Specter** 和 **Meltdown** 硬件漏洞被发现并且操作系统为其创建了解决方案之后，系统调用比以往任何时候都要昂贵。因此，对于高性能应用程序来说，减少系统调用的数量确实是一件大事。
+
+在执行这些操作之前，需要设置队列，它们实际上是具有一定深度/长度的环形缓冲区。
+您可以调用 **`io_ uring_setup ()`**系统调用来完成此操作。我们通过将提交队列条目添加到循环缓冲区并从完成队
+列循环缓冲区读取完成队列条目来完成实际工作。这是一个如何设计这个输入输出界面的概述。
+
+## 完成队列输入
+
+现在我们已经有了一个关于事物如何工作的心智模型，让我们更详细地看看这是如何完成的。与提交队列条目(SQE)相比，
+完成队列条目(CQE)非常简单。那么，让我们先来看看。SQE 是一个 **`io_uring_sqe`** 结构的实例，您可以使用它提交请求。
+将其添加到提交环缓冲区。CQE 是一个 **io_uring_cqe** 结构的实例，内核对添加到提交队列中的每个 **`io_uring_sqe`** 结构实例进行响应。它包含您通过 SQE 实例请求的操作的结果。
+
+```c
+struct io_uring_cqe {
+  __u64  user_data;   /* sqe->user_data submission passed back */
+  __s32  res;         /* 此事件的结果代码 */
+  __u32  flags;
+};
+```
+
+## 将完成与提交相关联
+正如在代码注释中提到的，**user_data** 字段是按原样从 SQE 传递到 CQE 实例的。假设您在提交队列中提交了一组请求，那么这些请求就不必以相同的顺序完成，
+也不必以 CQEs 的身份出现在完成队列中。以下面的场景为例: 您的机器上有两个磁盘: 一个是慢速旋转的硬盘驱动器，另一个是超快的 SSD。
+您在提交队列中提交2个请求。第一个在慢速旋转的硬盘上读取100kB 的文件，第二个在快速固态硬盘上读取同样大小的文件。
+如果维护排序，即使来自 SSD 文件的数据预计会更早到达，内核是否应该等待来自旋转硬盘上的文件的数据变得可用？这是个坏主意，
+因为这会阻止我们跑得越快越好。因此，当 CQEs 可用时，它们可以按任意顺序到达。无论哪个操作完成，其结果都会在 CQ 上公布。
+由于 CQEs 的到达没有特定的顺序，现在你已经知道了从上面的 **io_uring_cqe** 结构中看到的 CQE 是什么样子的，你如何识别一个特定 CQE 对应的 SQE 请求？
+一种方法是使用 SQEs 和 CQEs 共有的 **user_data** 字段来标识完成情况。并不是说你要设置一个唯一的 ID 或者其他什么，而是你通常会传递一个指针。如果你对此感到困惑，那就等着看后面的例子吧。
+
+完成队列条目很简单，因为它主要关注系统调用的返回值，这个返回值在 res 字段中返回。例如，如果您在成功完成读取操作时排队，那么它将包含读取的字节数。如果有错误，它将包含一个负的错误号。本质上，**read(2)**系统调用自身的内容将返回。
+
+## 订阅
+虽然我提到了 CQEs 可以以任何顺序到达，但是您可以强制使用 SQE 排序对某些操作进行排序，实际上是将它们链接起来。有关更多细节，请参见链接请求教程。
+
+## 提交队列条目
+
+``` c
+struct iovec {
+     void  *iov_base;    /*开始地址 */
+     size_t iov_len;     /*要传输的字节数 */
+};
+```
+iovec 每个结构只指向一个缓冲区。基址和长度。
+
+submission 队列条目比 completion 队列条目稍微复杂一些，因为它需要足够通用，以标识和处理目前 Linux 可能采用的各种 i/o操作：
+```c
+struct io_uring_sqe {
+  __u8  opcode;   /* 指定操作类型 */
+  __u8  flags;    /* IOSQE_ 标记 */
+  __u16  ioprio;  /* ioprio 请求 */
+  __s32  fd;      /* 要执行 IO 的文件描述符 */
+  __u64  off;     /* 文件偏移 */
+  __u64  addr;    /* 指向缓冲区或者iovecs */
+  __u32  len;     /* 缓冲区大小或者iovecs 数量 */
+  union {
+    __kernel_rwf_t  rw_flags;
+    __u32    fsync_flags;
+    __u16    poll_events;
+    __u32    sync_range_flags;
+    __u32    msg_flags;
+  };
+  __u64  user_data;   /* 完成时传回的数据  */
+  union {
+    __u16  buf_index; /* 索引到固定缓冲区（如果使用） */
+    __u64  __pad2[3];
+  };
+};
+```
+
+我知道这个结构看起来很繁杂。通常使用的字段只有少数，这很容易用一个简单的例子来解释，
+比如我们正在处理的这个字段: cat。当你想使用 readv (2)系统调用读取一个文件时:
+
+- opcode 用于指定操作，在这个case 中，readv(2) 使用的是 **IORING_OP_READV** 常量
+- fd 用于指定表示要从中读取的文件的文件描述符
+- addr 用于指向 iovec 结构的数组，这些结构包含我们为 i/o 分配的缓冲区的地址和长度。
+- len  用于保存 iovec 结构的数组的长度。
+
+这并不是很难，不是吗？你填写这些值，让 io_uring 知道该做什么。当您希望内核开始处理您的排队请求时，您可以对多个 SQEs 进行排队，并最终调用 **`io_uring_enter()`** 。
+
+
 
 ## 使用 io_uring 实现 cat 命令
+
+让我们看看如何通过使用低级 **io_uring** 接口的类似 cat 实用程序的程序来实现这一点。
+
+
 ``` c
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +150,20 @@ struct io_uring_sqe {
     __u64  __pad2[3];
   };
 };
+
+
+
+struct io_uring_params {
+  __u32 sq_entries;
+  __u32 cq_entries;
+  __u32 flags;
+  __u32 sq_thread_cpu;
+  __u32 sq_thread_idle;
+  __u32 resv[5];
+  struct io_sqring_offsets sq_off;
+  struct io_cqring_offsets cq_off;
+};
+
 */
 
 struct app_io_sq_ring { // Submission ring
@@ -141,9 +252,12 @@ int app_setup_uring(struct submitter *s) {
 
     /*
     * 我们需要将 io_uring_params 结构传递给的io_uring_setup（）调用并设置为0。 
-    * 如果需要，我们可以设置任何标志，但是对于本示例，我们不需要。
+    * 如果需要，我们可以设置任何标志，但是对于本示例，我们不需要，因为这里只是做了简单的了解。
+    * 
     * */
     memset(&p, 0, sizeof(p));
+
+    // io_uring_setup 返回值将用于调用 mmap 将两个环缓冲区和一组提交队列映射到用户空间
     s->ring_fd = io_uring_setup(QUEUE_DEPTH, &p);
     if (s->ring_fd < 0) {
         perror("io_uring_setup");
@@ -390,6 +504,141 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 ```
+
+## 解释
+让我们更深入地研究代码中特定的、重要的领域，看看这个示例程序是如何工作的。
+
+## 最初的设置
+在 main()中，我们称 **`app_setup_uring()`** ，它完成使用 **io_uring** 所需的初始化工作。首先，
+我们使用我们需要的队列深度调用 **`io_uring_setup()`**系统调用，并将结构 **io_uring_params** 全部设置为零。当调用返回时，内核将填充这个结构成员中的值。这就是 **io_uring_params** 的样子:
+```c
+struct io_uring_params {
+  __u32 sq_entries;
+  __u32 cq_entries;
+  __u32 flags;
+  __u32 sq_thread_cpu;
+  __u32 sq_thread_idle;
+  __u32 resv[5];
+  struct io_sqring_offsets sq_off;
+  struct io_cqring_offsets cq_off;
+};
+```
+在将这个结构作为 **`io_uring_setup ()`**系统调用的一部分传递之前，您唯一可以指定的是 flags 结构成员，但是在这个示例中，
+我们不想传递任何标志。此外，在这个示例中，我们一个接一个地处理文件。我们不打算做任何并行 i/o，因为这是一个简单的例子，主要是为了了解 io_uring 的原始接口。为此，我们将队列深度设置为1。
+
+
+来自 **`io_uring_setup ()`**的返回值、文件描述符和 **io_uring_param** 结构中的其他字段随后将用于调用 mmap (2)以将两个环缓冲区和一组提交队列条目映射到用户空间。看看吧。我已经删除了一些周围的代码，以便将重点放在 mmap (2)调用上。
+
+```c
+/* Map in the submission and completion queue ring buffers.
+ * Older kernels only map in the submission queue, though.
+ * */
+sq_ptr = mmap(0, sring_sz, PROT_READ | PROT_WRITE,
+        MAP_SHARED | MAP_POPULATE,
+        s->ring_fd, IORING_OFF_SQ_RING);
+if (sq_ptr == MAP_FAILED) {
+    perror("mmap");
+    return 1;
+}
+if (p.features & IORING_FEAT_SINGLE_MMAP) {
+    cq_ptr = sq_ptr;
+} else {
+    /* Map in the completion queue ring buffer in older kernels separately */
+    cq_ptr = mmap(0, cring_sz, PROT_READ | PROT_WRITE,
+            MAP_SHARED | MAP_POPULATE,
+            s->ring_fd, IORING_OFF_CQ_RING);
+    if (cq_ptr == MAP_FAILED) {
+        perror("mmap");
+        return 1;
+    }
+}
+/* Map in the submission queue entries array */
+s->sqes = mmap(0, p.sq_entries * sizeof(struct io_uring_sqe),
+        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE,
+        s->ring_fd, IORING_OFF_SQES);
+```
+我们将重要的细节保存在 **`app_io_sq_ring`** 和 **`app_io_cq_ring`** 中，以便以后参考。
+当我们将两个环缓冲区分别映射为提交和完成时，您可能想知道第三个映射是用来做什么的。
+完成队列环直接对 CQEs 的共享数组建立索引，而提交环在两者之间有一个间接数组。
+提交端环形缓冲区是该数组的索引，该数组又包含 SQEs 中的索引。这对于将提交请求嵌入内部数据结构的某些应用程序非常有用。
+这种设置允许他们一次提交多个提交条目，同时允许他们更容易地采用io_uring。
+
+	# 注意
+	在内核版本5.4及以上，单个 mmap (2)映射提交队列和完成队列。然而，在较老的内核中，
+	它们需要单独映射。与检查内核版本不同，
+	您可以通过检查 IORING_FEAT_SINGLE_MMAP  功能标志来检查内核使用一个 mmap (2)映射两个队列的能力，就像我们在上面的代码中所做的那样。
+
+	# 参考
+	- [io_uring_setup](https://unixism.net/loti/ref-iouring/io_uring_setup.html#io-uring-setup)
+## 处理共享环缓冲区
+在常规编程中，我们习惯于处理用户空间和内核之间非常清晰的接口: 系统调用。然而，
+系统调用确实有成本，对于像 **io_uring** 这样的高性能接口，希望尽可能地去除它们。
+我们在前面看到，与通常的多个系统调用不同，使用 io_uring 
+允许我们批处理多个 i/o 请求，并对 **`io_uring_enter ()`**系统调用进行单个调用。或者在轮询模式下，甚至不需要调用。
+
+当从用户空间读取或更新共享环缓冲区时，需要注意一些事项，以确保在读取时看到最新的数据，
+并在更新之后“刷新”或“同步”写操作，以便内核看到您的更新。这是因为 CPU 可以重新安排读写顺序，
+编译器也可以。当读写操作发生在同一个 CPU 上时，这通常不是问题。但是在 **`io_uring`** 的情况下，
+当一个共享缓冲区涉及到两个不同的上下文: 用户空间和内核，并且它们在上下文
+切换之后可以在不同的 cpu 上运行。您需要确保从用户空间读取之前，先前的写操作是可见的。
+或者，当您在 SQE 中填充细节并更新提交缓冲区的尾部时，您希望确保在更新环缓冲区尾部的写入之前，
+对 SQE 成员进行的写入是有序的。如果这些写操作没有被排序，内核可能会看到尾部被更新，
+但是当它读取 SQE 时，它可能无法在读取 SQE 时找到所需的所有数据。在轮询模式中，
+内核正在查找对尾部的更改，这就成了一个真正的问题。
+这都是因为 cpu 和编译器为了优化而对读写进行重新排序。
+
+## 读取完成队列条目
+一如既往，我们首先处理事情的完成方面，因为它比提交方面更简单。
+这些解释甚至是必要的，因为我们需要讨论内存的顺序和我们需要如何处理它。
+否则，我们只想看看如何处理环形缓冲区。对于完成事件，内核将 CQEs 添加到循环缓冲区并更新尾部，
+而我们在用户空间中从头部读取。在任何环形缓冲区中，如果头部和尾部相等，则表示环形缓冲区为空。看看下面的代码:
+```c
+unsigned head;
+head = cqring->head;
+read_barrier(); /* 确保以前的写入可见 */
+if (head != cqring->tail) {
+    /* 环形缓冲区中有可用的数据 */
+    struct io_uring_cqe *cqe;
+    unsigned index;
+    index = head & (cqring->mask);
+    cqe = &cqring->cqes[index];
+    /* 在此处完成cqe过程 */
+     ...
+    /* 我们现在已经消耗了这一项 */
+    head++;
+}
+cqring->head = head;
+write_barrier();
+```
+为了得到头部的索引，应用程序需要使用环形缓冲区的大小掩码来掩码头部。请记住，
+上面代码中的任何一行都可能在上下文切换之后运行。因此，在比较之前，
+我们有一个 **`read_barrier()`** ，这样，如果内核确实更新了尾部，
+我们可以在 if 语句中将其作为比较的一部分来读取。一旦我们获得了 CQE 并处理它，
+我们就更新 head，让内核知道我们已经使用了来自 ring 缓冲区的条目。最后一个 **`write_barrier()`**确保我们的写操作可见，这样内核就可以知道它。
+
+## 提交申请
+提交意见与阅读完成意见相反。在处理完成时，内核将条目添加到尾部，
+我们从循环缓冲区的头部读取条目，当提交时，我们添加到尾部，内核从循环缓冲区的头部读取条目。
+```c
+struct io_uring_sqe *sqe;
+unsigned tail, index;
+tail = sqring->tail;
+index = tail & (*sqring->ring_mask);
+sqe = &sqring->sqes[index];
+/* 此函数调用填写此IO请求的SQE详细信息 */
+app_init_io(sqe);
+/* 将SQE索引填充到SQ环数组中 */
+sqring->array[index] = index;
+tail++;
+write_barrier();
+sqring->tail = tail;
+write_barrier();
+```
+在上面的代码片段中，应用程序中的 **`app_init_io()`** 函数将填充提交请求的详细信息。在尾部更新之前，
+我们有一个 **`write_barrier()`** 来确保前面的写操作是有序的。然后我们更新 tail 并再次调用 **`write_barrier()`** 以确保我们的更新被看到。我们在这里排好队。
+
+## 源代码
+本文档中的代码和其他示例可以在这个 [Github](https://github.com/shuveb/loti-examples) 存储库中找到。
 
 
 ## 参考文档

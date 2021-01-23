@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>Probing supported capabilities | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="探测支持的功能下面的程序演示了如何使用io_uring_get_probe()。它会打印是否支持某个操作。 打印支持和不支持操作的详细信息的程序 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859#include &lt;stdio">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Probing supported capabilities">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="探测支持的功能下面的程序演示了如何使用io_uring_get_probe()。它会打印是否支持某个操作。 打印支持和不支持操作的详细信息的程序 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859#include &lt;stdio">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-01-22T06:47:00.000Z">
+<meta property="article:modified_time" content="2021-01-23T07:03:25.500Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Fri Jan 22 2021 14:47:00 GMT+0800">
+    <meta property="article:modified_time" content="Sat Jan 23 2021 15:03:25 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.3.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="Enter the key words">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        
+        
+          <a href="javascript:;" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme" style="justify-content: center;">分类为空</a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        
+        
+          <a href="javascript:;" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme" style="justify-content: center;">标签为空</a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+      <a href="/jony.github.io/tags" class="mdui-list-item mdui-ripple">Tags</a>
+    
+      <a href="/jony.github.io/gallery" class="mdui-list-item mdui-ripple">Gallery</a>
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-5.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">Probing supported capabilities</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-01-22 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">Send to mobile phone</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPYAAAD2CAAAAADAeSUUAAAC2UlEQVR42u3aS27cQAwFwLn/pZMLWPIjqTFm2KWVgdgtVS/ywM/r35HPCxsbGxsbGxsbG/sj2a/4ufqrq3OS869O++Gj4zMvvxkbGxt7NfuX//oDdnLm1Tk5b/TN2NjY2Aewk9dUg6QXRfeX27sabGxsbOy8tLi/rPwiemUJNjY2NnYvwJKWU+8t1RDFxsbGPpmdB8b9K+f4PBr/qJeGjY2N/fHsvD30OT//6XwbGxsb+4PZ5RXG1nLP/QnVxlPzy7GxsbGXsuet/3xkm1xlvhKUj5axsbGxd7MnB92T8ujKxwP5GhA2Njb2aex8cNuLtOqHFmJp3lTCxsbG/nJ2PrhNXvk+Xnmsi42NjX0Mu1okJC3+yZJN0pxqrhBhY2NjL2UnKzJ5K3/S0M+DsNrMwsbGxt7NTg7Ni4SckV9i/jvNUgQbGxt7HbtakOR/9YqfZ0e/2NjY2Cewq7GUtHiqQ4Je7BWuCRsbG3spu8qotuwnxUPvX5u9NGxsbOyvZVcHqL32UDXeJuOE5nwbGxsb+2vZ1VFrb12mGod5uDbHA9jY2NjHsJMgmTSbqtfXWxjCxsbG3s2eFAm9dn/157c3lbCxsbEXsXuwSZmRFz8PlyLY2NjY69jvGPreR04eS9XxQKEUwcbGxl7KroZZb9xbPWdS2GBjY2PvZieLktUXVEuU+Vg3+hJsbGzsA9j5B/XCrzqQ6I0QHlu+xMbGxv5C9qTdn7SBJshqcwobGxv7THZ1QWfU4mld32j0i42Njb2UXX2qoTVasimu9fwSydjY2NhL2dWQmH9odTCcR2N50IuNjY29iJ2HVnUF5z7AJoH3QIBhY2Njr2P3lnV6F5fHWK+phI2NjY3dGwlUA6w8rA2oo00lbGxs7GPYye9XS477MqNX8GBjY2Ofxp4Md/OIeraYKcQhNjY29mr2Y42bGNwrV3qBio2Njb2bfc6DjY2NjY2NjY2N/THPf+Wkmt3+NWN9AAAAAElFTkSuQmCC">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=Probing supported capabilities&url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=Probing supported capabilities&url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/&title=Probing supported capabilities" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=Probing supported capabilities&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/&text=Probing supported capabilities" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1 id="探测支持的功能"><a href="#探测支持的功能" class="headerlink" title="探测支持的功能"></a>探测支持的功能</h1><p>下面的程序演示了如何使用io_uring_get_probe()。它会打印是否支持某个操作。</p>
+<p><code>打印支持和不支持操作的详细信息的程序</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/utsname.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;liburing.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;liburing/io_uring.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span> *op_strs[] = &#123;</span><br><span class="line">        <span class="string">&quot;IORING_OP_NOP&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_READV&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_WRITEV&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_FSYNC&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_READ_FIXED&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_WRITE_FIXED&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_POLL_ADD&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_POLL_REMOVE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_SYNC_FILE_RANGE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_SENDMSG&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_RECVMSG&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_TIMEOUT&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_TIMEOUT_REMOVE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_ACCEPT&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_ASYNC_CANCEL&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_LINK_TIMEOUT&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_CONNECT&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_FALLOCATE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_OPENAT&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_CLOSE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_FILES_UPDATE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_STATX&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_READ&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_WRITE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_FADVISE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_MADVISE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_SEND&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_RECV&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_OPENAT2&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_EPOLL_CTL&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_SPLICE&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_PROVIDE_BUFFERS&quot;</span>,</span><br><span class="line">        <span class="string">&quot;IORING_OP_REMOVE_BUFFERS&quot;</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">utsname</span> <span class="title">u</span>;</span></span><br><span class="line">    uname(&amp;u);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;You are running kernel version: %s\n&quot;</span>, u.release);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">io_uring_probe</span> *<span class="title">probe</span> =</span> io_uring_get_probe();</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Report of your kernel&#x27;s list of supported io_uring operations:\n&quot;</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">char</span> i = <span class="number">0</span>; i &lt; IORING_OP_LAST; i++ ) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%s: &quot;</span>, op_strs[i]);</span><br><span class="line">        <span class="keyword">if</span>(io_uring_opcode_supported(probe, i))</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;yes.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;no.\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">free</span>(probe);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是上述程序在Linux内核5.6.4上运行时的输出:<br>    You are running kernel version: 5.6.4-arch1-1<br>    Report of your kernel’s list of supported io_uring operations:<br>    IORING_OP_NOP: yes.<br>    IORING_OP_READV: yes.<br>    IORING_OP_WRITEV: yes.<br>    IORING_OP_FSYNC: yes.<br>    IORING_OP_READ_FIXED: yes.<br>    IORING_OP_WRITE_FIXED: yes.<br>    IORING_OP_POLL_ADD: yes.<br>    IORING_OP_POLL_REMOVE: yes.<br>    IORING_OP_SYNC_FILE_RANGE: yes.<br>    IORING_OP_SENDMSG: yes.<br>    IORING_OP_RECVMSG: yes.<br>    IORING_OP_TIMEOUT: yes.<br>    IORING_OP_TIMEOUT_REMOVE: yes.<br>    IORING_OP_ACCEPT: yes.<br>    IORING_OP_ASYNC_CANCEL: yes.<br>    IORING_OP_LINK_TIMEOUT: yes.<br>    IORING_OP_CONNECT: yes.<br>    IORING_OP_FALLOCATE: yes.<br>    IORING_OP_OPENAT: yes.<br>    IORING_OP_CLOSE: yes.<br>    IORING_OP_FILES_UPDATE: yes.<br>    IORING_OP_STATX: yes.<br>    IORING_OP_READ: yes.<br>    IORING_OP_WRITE: yes.<br>    IORING_OP_FADVISE: yes.<br>    IORING_OP_MADVISE: yes.<br>    IORING_OP_SEND: yes.<br>    IORING_OP_RECV: yes.<br>    IORING_OP_OPENAT2: yes.<br>    IORING_OP_EPOLL_CTL: yes.<br>    IORING_OP_SPLICE: no.<br>    IORING_OP_PROVIDE_BUFFERS: no.<br>    IORING_OP_REMOVE_BUFFERS: no.</p>
+<h1 id="源代码"><a href="#源代码" class="headerlink" title="源代码"></a>源代码</h1><p>Github上提供了此示例和其他示例的<a target="_blank" rel="noopener" href="https://github.com/shuveb/loti-examples">源代码</a>。</p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/">https://jony-one.github.io/jony.github.io/2021/01/22/Probing-supported-capabilities/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/2021/01/22/A-web-server-with-liburing/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/2021/01/22/cp-with-liburing/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2019 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

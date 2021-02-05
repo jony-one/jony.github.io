@@ -4940,7 +4940,7 @@ template {
  * =============================================================================
  */
 body {
-  font-family: Roboto, Noto, Helvetica, Arial, sans-serif;
+  font-family: 方正幼圆,Roboto, Noto, Helvetica, Arial, sans-serif;
   font-size: 14px;
   color: rgba(0, 0, 0, .87);
   background-color: #fff;
@@ -5177,6 +5177,22 @@ body.mdui-locked {
 
   src: local('Roboto BlackItalic'), local('Roboto-BlackItalic'), url('../fonts/roboto/Roboto-BlackItalic.woff2') format('woff2'), url('../fonts/roboto/Roboto-BlackItalic.woff') format('woff');
 }
+
+/**
+ * =============================================================================
+ * ************   方正幼圆 字体   ************
+ * =============================================================================
+ */
+@font-face {
+  font-family: '方正幼圆';
+  font-style: normal;
+  font-weight: 100;
+
+  src: local('幼圆'), local('幼圆'), url('../fonts/方正幼圆/方正幼圆.TTF') format('TTF');
+}
+
+
+
 /**
  * =============================================================================
  * ************   Typography 排版   ************
@@ -8390,7 +8406,7 @@ input.mdui-btn[type="submit"] {
   -webkit-appearance: none;
   padding-right: 24px;
   padding-left: 0;
-  font-family: Roboto, Noto, Helvetica, Arial, sans-serif;
+  font-family: 方正幼圆,Roboto, Noto, Helvetica, Arial, sans-serif;
   font-size: 16px;
   vertical-align: middle;
   cursor: pointer;

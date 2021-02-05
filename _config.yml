@@ -106,3 +106,51 @@ deploy:
   type: 'git'
   repo: "https://github.com/jony-one/jony.github.io.git"
   branch: "main"
+
+font:
+  enable: true
+  # CDN
+  host: 
+
+  # Font options:
+  # `external: true` will load this font family from `host` above.
+  # `family: Times New Roman`. Without any quotes.
+  # `size: x.x`. Use `em` as unit. Default: 1 (16px)
+
+  # external: 控制是否使用 CDN。
+  # family: 字体样式。
+  # size: 字体大小。默认为 1（16px）。
+  
+  # Global font settings used for all elements inside <body>.
+  # 全局配置，覆盖 <body> 标签里所有元素
+  global:
+    external: true
+    family: "方正幼圆"
+    size: 
+
+  # Font settings for site title (.site-title).
+  # 博客名字那儿
+  title:
+    external: true
+    family: "方正幼圆"
+    size:
+
+  # Font settings for headlines (<h1> to <h6>).
+  # 注意这是文章里的标题，而不是侧边栏的 toc
+  headings:
+    external: true
+    family: "方正幼圆"
+    size:
+
+  # Font settings for posts (.post-body).
+  # 正文
+  posts:
+    external: true
+    family: "方正幼圆"
+    size:
+
+  # Font settings for <code> and code blocks.
+  # 代码块
+  codes:
+    external: true
+    family: 

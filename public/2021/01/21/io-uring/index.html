@@ -20,7 +20,7 @@
 <meta property="og:description" content="io_uring 的底层接口正如在前一个文章中所建议的那样，您不太可能在正式的程序中使用低级别的 io_uring API。但是知道接口真正使用起来是什么样的方式总是一个好主意。为此，你将不得不绕过接口 io_uring，通过共享环缓冲区和相关 io_uring 系统调用直接显示给程序。一个很好的例子和一个简单的例子，可以很好地展示这个接口。为此，在这里，我们提供了一个模拟 Unix cat 实用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-01-21T06:25:57.000Z">
-<meta property="article:modified_time" content="2021-01-22T05:59:46.327Z">
+<meta property="article:modified_time" content="2021-02-05T08:40:14.941Z">
 <meta property="article:author" content="Jony.Z.Y">
 <meta name="twitter:card" content="summary">
 
@@ -40,7 +40,7 @@
 
   
     <meta property="article:published_time" content="Thu Jan 21 2021 14:25:57 GMT+0800">
-    <meta property="article:modified_time" content="Fri Jan 22 2021 13:59:46 GMT+0800">
+    <meta property="article:modified_time" content="Fri Feb 05 2021 16:40:14 GMT+0800">
   
 
   
@@ -104,7 +104,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">8</span></a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">2</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">7</span></a>
         
       </div>
     </div>
@@ -128,7 +128,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Tag1/" rel="tag">Tag1<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
         
       </div>
     </div>
@@ -163,7 +163,7 @@
   <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
   <article class="mdui-card mdui-m-b-5">
     <header class="mdui-card-media">
-      <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+      <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
       <div class="mdui-card-media-covered">
         <div class="mdui-card-primary">
           <div class="mdui-card-primary-title">io_uring</div>
@@ -293,11 +293,6 @@
       </a>
     
     <div class="spacer"></div>
-    
-      <a rel="next" class="extend next" href="/jony.github.io/2021/01/11/hello-world/">
-        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
-      </a>
     
   </nav>
 

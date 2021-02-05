@@ -20,7 +20,7 @@
 <meta property="og:description" content="cat 使用 liburing 实现我们看到，构建像读取文件的程序这样简单的东西，对于输入来说可能不那么简单。事实证明，与读取同步 i&#x2F;o 文件的程序相比，它的代码更多。但是，如果你分析使用低级别 io _ uring 接口的 cat 实用程序的代码，你会发现大部分代码都是重复代码，可以很容易地隐藏在一个单独的文件中，它不应该受应用程序逻辑的影响。无论如何，我们正在有意学习低层次的信息，以便更好地">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-01-22T02:24:27.000Z">
-<meta property="article:modified_time" content="2021-01-23T07:03:25.500Z">
+<meta property="article:modified_time" content="2021-01-22T06:19:50.684Z">
 <meta property="article:author" content="Jony.Z.Y">
 <meta name="twitter:card" content="summary">
 
@@ -40,7 +40,7 @@
 
   
     <meta property="article:published_time" content="Fri Jan 22 2021 10:24:27 GMT+0800">
-    <meta property="article:modified_time" content="Sat Jan 23 2021 15:03:25 GMT+0800">
+    <meta property="article:modified_time" content="Fri Jan 22 2021 14:19:50 GMT+0800">
   
 
   
@@ -73,7 +73,7 @@
 <div class="mdui-dialog" id="search">
   
     <div class="search-form">
-      <input type="search" class="search-form-input" placeholder="Enter the key words">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
     </div>
     <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
   
@@ -104,7 +104,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">8</span></a>
         
       </div>
     </div>
@@ -116,9 +116,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        
-        
-          <a href="javascript:;" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme" style="justify-content: center;">分类为空</a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">1</span></a>
         
       </div>
     </div>
@@ -130,9 +128,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        
-        
-          <a href="javascript:;" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme" style="justify-content: center;">标签为空</a>
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Tag1/" rel="tag">Tag1<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
         
       </div>
     </div>
@@ -145,10 +141,6 @@
   <div class="mdui-divider"></div>
 
   <div class="mdui-list" mdui-collapse="{accordion: true}">
-    
-      <a href="/jony.github.io/tags" class="mdui-list-item mdui-ripple">Tags</a>
-    
-      <a href="/jony.github.io/gallery" class="mdui-list-item mdui-ripple">Gallery</a>
     
     <div class="mdui-collapse-item">
       <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
@@ -171,7 +163,7 @@
   <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
   <article class="mdui-card mdui-m-b-5">
     <header class="mdui-card-media">
-      <img src="/jony.github.io//images/random/material-11.png" style="max-height: 240px;">
+      <img src="/jony.github.io//images/random/material-8.png" style="max-height: 240px;">
       <div class="mdui-card-media-covered">
         <div class="mdui-card-primary">
           <div class="mdui-card-primary-title">cat with liburing</div>

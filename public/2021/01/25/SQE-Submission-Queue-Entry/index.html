@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>SQE: Submission Queue Entry | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="SQE: Submission Queue Entry提交队列条目(SQE)是用来告诉 io_uring 你想要做什么，比如读取一个文件，写一个文件，监听一个 socket 上的连接等等。 # 注意 这个结构是原始 io_uring 接口的一部分，在 io_uring.h 中定义。 struct io_uring_sqe123456789101112131415161718192021222324">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SQE: Submission Queue Entry">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="SQE: Submission Queue Entry提交队列条目(SQE)是用来告诉 io_uring 你想要做什么，比如读取一个文件，写一个文件，监听一个 socket 上的连接等等。 # 注意 这个结构是原始 io_uring 接口的一部分，在 io_uring.h 中定义。 struct io_uring_sqe123456789101112131415161718192021222324">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-01-25T01:23:29.000Z">
+<meta property="article:modified_time" content="2021-01-25T01:29:44.788Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Mon Jan 25 2021 09:23:29 GMT+0800">
+    <meta property="article:modified_time" content="Mon Jan 25 2021 09:29:44 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.3.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">8</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">1</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Tag1/" rel="tag">Tag1<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">SQE: Submission Queue Entry</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-01-25 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">Send to mobile phone</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPYAAAD2CAAAAADAeSUUAAAC30lEQVR42u3aS04kMRAFQO5/aeYAiOr30h7UbYdXLMpVDiOR5Ofr+8r1hY2NjY2NjY2Njf2W7K94/dz18w3PzyTPP+9aOjM2Njb20ewXf/ofn0lIv70nv9DfriA/MzY2NvYN7OQzz8+0gSoPk+tXg42NjY2dHKVNS54vYm+Qw8bGxsZuD/GcJOThqi0wYWNjY9/Mbj/Zhq5kV9t4+KNaGjY2Nvbbs/Om6fv8/Kf9bWxsbOw3ZrcrL/q0jYG2FFWfHBsbG/tQdh4YEnze7m0vYnZObGxs7BvYecM1LyTl5aQkKLbf+vUZbGxs7GvYs59nF7frPUtFJWxsbOwPZ88GH1cwK7CirYuNjY19DTtPHlZ25UM2s2JWNDyEjY2NfSi7LegnrdwZrC1R1cUsbGxs7KPZeft2fSWYDaOWSQDDxsbGPojdho28PLQOmI3pYGNjY9/Dbsv662lD2zbIB4ZefAUbGxv7GnYObtOYPAVqV9KKwMbGxj6VHW2I8bPWbz58mVxW0ejFxsbGPo6dJxt5CtGO17Tlqg1dEWxsbOwj2G3R/zn9mBWtZkErKUJhY2Njn81uE5KVwJYnJHl6s62Who2Njf2x7JVRyzzZ2NXQ/S8ZGDY2NvZx7DbwzEJOPvrTtgeKDAwbGxv7IPa2ILFQnMq/OExmsLGxsS9gtwGpHpoJwlXb7i0KT9jY2NhHs9tUYVZ+ahOVfLgnCn7Y2NjYF7B3JQl5Mzgfx0muZkN7ABsbG/vD2bO2Qb6rve5dLWdsbGzss9ntaq9j5dDtWM+LXyQ2Njb2oexdhaF83Gd46LK5O+xvY2NjY38suw1as7CUBKe8jLUhgGFjY2Mfx54Va/a2jdeLStjY2NjYOXsWWvLjthf04m3Y2NjY2MG//rOEIdnVlrewsbGx72TnCUaekLSt3JUi14szY2NjYx/NXhmsSa5jFn7y5CTai42NjX0o+56FjY2NjY2NjY2N/TbrHyb9XP9MdchsAAAAAElFTkSuQmCC">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=SQE: Submission Queue Entry&url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=SQE: Submission Queue Entry&url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/&title=SQE: Submission Queue Entry" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=SQE: Submission Queue Entry&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/&text=SQE: Submission Queue Entry" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1 id="SQE-Submission-Queue-Entry"><a href="#SQE-Submission-Queue-Entry" class="headerlink" title="SQE: Submission Queue Entry"></a>SQE: Submission Queue Entry</h1><p>提交队列条目(SQE)是用来告诉 <strong><code>io_uring</code></strong> 你想要做什么，比如读取一个文件，写一个文件，监听一个 socket 上的连接等等。</p>
+<pre><code># 注意
+这个结构是原始 io_uring 接口的一部分，在 io_uring.h 中定义。</code></pre>
+<h2 id="struct-io-uring-sqe"><a href="#struct-io-uring-sqe" class="headerlink" title="struct io_uring_sqe"></a>struct io_uring_sqe</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">io_uring_sqe</span> &#123;</span></span><br><span class="line">    __u8    opcode;         <span class="comment">/* 此sqe的操作类型 */</span></span><br><span class="line">    __u8    flags;          <span class="comment">/* IOSQE_ 标记 */</span></span><br><span class="line">    __u16   ioprio;         <span class="comment">/* 请求的ioprio */</span></span><br><span class="line">    __s32   fd;             <span class="comment">/* 要执行IO的文件描述符 */</span></span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        __u64       off;    <span class="comment">/* offset into file */</span></span><br><span class="line">        __u64       addr2;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        __u64       addr;   <span class="comment">/* 指向缓冲区或iovecs的指针 */</span></span><br><span class="line">        __u64       splice_off_in;</span><br><span class="line">    &#125;;</span><br><span class="line">    __u32   len;            <span class="comment">/* 缓冲区大小或iovec的数量 */</span></span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        <span class="keyword">__kernel_rwf_t</span>      rw_flags;</span><br><span class="line">        __u32               fsync_flags;</span><br><span class="line">        __u16               poll_events;</span><br><span class="line">        __u32               sync_range_flags;</span><br><span class="line">        __u32               msg_flags;</span><br><span class="line">        __u32               timeout_flags;</span><br><span class="line">        __u32               accept_flags;</span><br><span class="line">        __u32               cancel_flags;</span><br><span class="line">        __u32               open_flags;</span><br><span class="line">        __u32               statx_flags;</span><br><span class="line">        __u32               fadvise_advice;</span><br><span class="line">        __u32               splice_flags;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="comment">/* 在完成时传回的数据 */</span></span><br><span class="line">    __u64   user_data;</span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">            <span class="comment">/* pack this to avoid bogus arm OABI complaints */</span></span><br><span class="line">            <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">                <span class="comment">/* 索引到固定缓冲区（如果使用 */</span></span><br><span class="line">                __u16       buf_index;</span><br><span class="line">                <span class="comment">/* 用于分组缓冲区选择 */</span></span><br><span class="line">                __u16       buf_group;</span><br><span class="line">            &#125; __attribute__((packed));</span><br><span class="line">            <span class="comment">/* personality to use, if used */</span></span><br><span class="line">            __u16   personality;</span><br><span class="line">            __s32   splice_fd_in;</span><br><span class="line">        &#125;;</span><br><span class="line">        __u64       __pad2[<span class="number">3</span>];</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/">https://jony-one.github.io/jony.github.io/2021/01/25/SQE-Submission-Queue-Entry/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/2021/01/25/CQE-Completion-Queue-Event/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/2021/01/22/A-web-server-with-liburing/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2019 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

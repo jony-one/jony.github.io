@@ -1,8 +1,12 @@
 ---
-title: cp with liburing
-date: 2021-01-22 14:32:52
+title: liburing 实现 cp 命令
+date: 2021-02-07 16:15:31
+categories: ["Lord of the io_uring"]
 tags:
+  - io_uring
+
 ---
+
 
 # liburing 实现 cp 命令
 

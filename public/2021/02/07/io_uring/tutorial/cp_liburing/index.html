@@ -8,30 +8,31 @@
   <meta name="renderer" content="webkit">
 
   
-  <title>cp with liburing | Jony</title>
+  <title>liburing 实现 cp 命令 | Jony</title>
 
   <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
   <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
   <meta name="description" content="liburing 实现 cp 命令 在前面的小节中，我们看到了如何使用liburing提供的高级接口来构建相当于Unix cat的工具。 然而，在这两个例子中，我们队列没有同时处理超过一个请求。 io_uring的目标之一是能够通过 让用户同时排队几个操作来减少系统调用的数量，这样内核就可以一下子接收并处理这些操作， 而不需要程序为每个I&#x2F;O请求进行一次或多次系统调用。 为此，在本部分中，我们构建">
 <meta property="og:type" content="article">
-<meta property="og:title" content="cp with liburing">
-<meta property="og:url" content="https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/index.html">
+<meta property="og:title" content="liburing 实现 cp 命令">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/index.html">
 <meta property="og:site_name" content="Jony">
 <meta property="og:description" content="liburing 实现 cp 命令 在前面的小节中，我们看到了如何使用liburing提供的高级接口来构建相当于Unix cat的工具。 然而，在这两个例子中，我们队列没有同时处理超过一个请求。 io_uring的目标之一是能够通过 让用户同时排队几个操作来减少系统调用的数量，这样内核就可以一下子接收并处理这些操作， 而不需要程序为每个I&#x2F;O请求进行一次或多次系统调用。 为此，在本部分中，我们构建">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2021-01-22T06:32:52.000Z">
-<meta property="article:modified_time" content="2021-02-07T08:27:41.510Z">
+<meta property="article:published_time" content="2021-02-07T08:15:31.000Z">
+<meta property="article:modified_time" content="2021-02-07T08:28:19.503Z">
 <meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="io_uring">
 <meta name="twitter:card" content="summary">
 
   <meta name="format-detection" content="telephone=no,email=no">
   <meta name="theme-color" content="#9C27B0">
   <meta name="description" content="">
-  <meta name="keywords" content="">
+  <meta name="keywords" content=",io_uring">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Jony">
-  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/22/cp-with-liburing/">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/">
   <meta name="msapplication-navbutton-color" content="#9C27B0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Jony">
@@ -39,12 +40,12 @@
   <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
 
   
-    <meta property="article:published_time" content="Fri Jan 22 2021 14:32:52 GMT+0800">
-    <meta property="article:modified_time" content="Sun Feb 07 2021 16:27:41 GMT+0800">
+    <meta property="article:published_time" content="Sun Feb 07 2021 16:15:31 GMT+0800">
+    <meta property="article:modified_time" content="Sun Feb 07 2021 16:28:19 GMT+0800">
   
 
   
-    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/2021/01/22/cp-with-liburing/">
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/">
   
 
   
@@ -163,11 +164,11 @@
   <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
   <article class="mdui-card mdui-m-b-5">
     <header class="mdui-card-media">
-      <img src="/jony.github.io//images/random/material-2.png" style="max-height: 240px;">
+      <img src="/jony.github.io//images/random/material-9.png" style="max-height: 240px;">
       <div class="mdui-card-media-covered">
         <div class="mdui-card-primary">
-          <div class="mdui-card-primary-title">cp with liburing</div>
-          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-01-22 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          <div class="mdui-card-primary-title">liburing 实现 cp 命令</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
         </div>
       </div>
       <div class="mdui-card-menu">
@@ -179,7 +180,7 @@
             
             <li class="mdui-menu-item" disabled>
               
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPYAAAD2CAAAAADAeSUUAAAC0ElEQVR42u3aQVLkQAwEQP7/afa6ESxDlTRszHSnTw5j7E5zKCT1x+eVxwc2NjY2NjY2Njb2S7I/4iP/rX+88pvrj+/5+8rX83rN2NjY2Eez2wVFgfHl9d8tPXnCd88pPiI2Njb2BezkNUmwzWD5E9o1Y2NjY2Pn54+LljyokvuxsbGxsffs5KezWEqegI2NjY09a9AUrymLlmd9IGxsbOw72fnQ9HXO/+t8GxsbG/uF2bPx7ePmfnK9Hd/Ohs3Y2NjYN7Dbxf3e9pp2K2c9VMDGxsa+kp1sr3nWICFvUeXDA2xsbOzb2I/jIRnlzpr7mxBd9dKwsbGxj2DvB6gJZtPWn7WcsLGxsbE3EZKPbPNAyoufVYBhY2NjvyF73xIqGvQxqS1gouvY2NjYh7Jnzfd9pG0GA1ELKcltbGxs7CPYbVDNCpW2tdQ+J7ofGxsb+wJ2vqBNEz8vWtoQ/SEIsbGxsY9mJ7C23ZMjZ6PcvJjBxsbGvpndfo7Z4tpyJfkzrAIMGxsb+63Yj//RT9r0eSzNGkNPGwxjY2NjH8reDGLbUMk/Tfvpo/jExsbGPprdLn22rNnH/fWmEjY2Nvabs/NYau/PS4UXrcCwsbGxD2LPBrqbVn7L/gwObGxs7FPZbZC0r9xHVz6iWO05xcbGxn5zdstIgqoFtyPk5BNjY2Nj38PejwraENoHXrsNFBsbG/sGdkt63PrJW0W/UfAUAYaNjY19ATsf/c5GBfnTVqNfbGxs7EPZs8ZN/spNy6mNwx9CFxsbG/tQdhsSmzFwXtg89xwbGxv7Bnbesmm3Uc42XLb3DwMMGxsb+zj2ppxot/s894g+EDY2NjZ2PHzNy5hZlM7KHmxsbGzsZHGzgiHf3NNuIcLGxsa+jT2LlmTzTd4wmo0QVgGGjY2NfQS7bdzkS2xb/Pm2njyAsbGxsc9m33NgY2NjY2NjY2Njv8zxB0oLaDpIll2uAAAAAElFTkSuQmCC">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPYAAAD2CAAAAADAeSUUAAAC0klEQVR42u3aSVLDQAwF0Nz/0nAAcPIldYHd/bxK4UnPC1QaXl9HHi9sbGxsbGxsbGzsW7Jf8fHzrqvn/PLK1jOvzjZjxsbGxt6a/eFffxF5dc1V6AlvQczY2NjYB7CvEkDyuxpWktiS5+f3YmNjY2MnSeXq3g8BLboeGxsbG7vKnrSHEkxyFhsbGxu72qBJioc8rHzw8M+9NGxsbOzbs/Oh6X1+/+l8GxsbG/vG7OqRFAxJ0qqWNPnI4TJybGxs7E3ZeVj5Kk816OpQoRonNjY29jnsXou/NzzojQfyJR5sbGzsc9j50syqdJUnwkJy6jWVsLGxsbdg549OPsFk1eZ9ckrYo0EvNjY29kbsSVt/VCoUI0k+JTY2NvYJ7ORxeUqbFAz50LfXDsPGxsY+gd0bBuTNqUk7abLug42Njb03u9fcyVtLPVieYgvrRNjY2NibsieN++rnqKa9avPow1uwsbGxt2avWrWpNvGr5VByttBUwsbGxt6CXS0/eve+D24yVC4sD2FjY2Nvyp4gq9f0GklJU6k5FcHGxsbeiN1LNslzVjWVenhsbGzsc9jVJZtkfJsgb9RLw8bGxn4se+2SzeTK/I0LShFsbGzsjdi9dk+1gKkms/dR5ekWGxsb+zR2tTjplRn5B62WOqOdU2xsbOzHsvP0kKSKSeunuqxZfjs2Njb21uy8AKimk7xUyAuS5pAYGxsb+xh2tRjojV1XjW9Hg15sbGzsTdm9xs1kVNBbsiy/ERsbG3tT9qQwyMF5eZOXQ9XmFzY2Nvau7Fd89D7HZAzcS6LNQS82Njb2w9n5ADVPKr3xQ+9dy3pp2NjY2A9n95LH5MP1Wki9xXpsbGxs7Pya5kpN/JfqR8TGxsbG7rF7Y+DJkAAbGxsbOykkemVGNdm8T1rJWWxsbOzT2NXGTa/MWFWuNGPAxsbG3pR9zoGNjY2NjY2NjY19m+Mbwz25zNDCOCMAAAAASUVORK5CYII=">
               
             </li>
           </ul>
@@ -188,25 +189,25 @@
           <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
           <ul class="mdui-menu" id="share_menu">
             <li class="mdui-menu-item">
-              <a href="http://service.weibo.com/share/share.php?appkey=&title=cp with liburing&url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=liburing 实现 cp 命令&url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://twitter.com/intent/tweet?text=cp with liburing&url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+              <a href="https://twitter.com/intent/tweet?text=liburing 实现 cp 命令&url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/" target="_blank" class="mdui-ripple">分享到Facebook</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/" target="_blank" class="mdui-ripple">分享到Google+</a>
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/" target="_blank" class="mdui-ripple">分享到Google+</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/&title=cp with liburing" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/&title=liburing 实现 cp 命令" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=cp with liburing&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/" target="_blank" class="mdui-ripple">分享到QQ</a>
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=liburing 实现 cp 命令&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/" target="_blank" class="mdui-ripple">分享到QQ</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/&text=cp with liburing" target="_blank" class="mdui-ripple">分享到Telegram</a>
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/&text=liburing 实现 cp 命令" target="_blank" class="mdui-ripple">分享到Telegram</a>
             </li>
           </ul>
         
@@ -234,12 +235,16 @@
 
       <blockquote class="mdui-m-t-5">
         
-        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/">https://jony-one.github.io/jony.github.io/2021/01/22/cp-with-liburing/</a>
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/">https://jony-one.github.io/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/</a>
       </blockquote>
       
     </div>
     <footer class="mdui-card-actions">
       
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
       
     </footer>
     
@@ -253,14 +258,14 @@
 
   <nav id="paginator">
     
-      <a rel="prev" class="extend prev" href="/jony.github.io/2021/01/22/Probing-supported-capabilities/">
+      <a rel="prev" class="extend prev" href="/jony.github.io/2021/02/07/io_uring/tutorial/webserver_liburing/">
         <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
       </a>
     
     <div class="spacer"></div>
     
-      <a rel="next" class="extend next" href="/jony.github.io/2021/01/22/cat-with-liburing/">
+      <a rel="next" class="extend next" href="/jony.github.io/2021/02/07/io_uring/tutorial/cat_liburing/">
         下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
       </a>

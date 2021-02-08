@@ -1,5 +1,5 @@
 ---
-title: 探索支持功能
+title: 探测支持功能
 date: 2021-02-07 17:11:48
 categories: ["Lord of the io_uring"]
 tags:

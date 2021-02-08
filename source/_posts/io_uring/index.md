@@ -22,27 +22,25 @@ io_uring是在Linux下进行异步I/O编程的一种强大的新方法。`io_uri
 
 引言
 
-- Linux 下的异步编程
-- 什么是 io_uring？
-- `io_uring` 的底层接口 
+- [Linux 下的异步编程](/jony.github.io/493f5652fc23/)
+- [什么是 `io_uring`？](/jony.github.io/98b4e846459c/)
+- [`io_uring` 的底层接口](/jony.github.io/3d70b9e6d77f/)
 
 教程
 
-- liburing 例子
-- cat 使用 liburing 实现
-- cp 使用 liburing 实现
-- web 服务器使用 liburing 实现
-- 探测支持的功能
-- 连接请求
-- 固定的缓冲区
-- 提交队列轮询
-- 注册一个eventfd
+- [cat 使用 `liburing` 实现](/jony.github.io/33f4e488c2f3/)
+- [cp 使用 `liburing` 实现](/jony.github.io/fbcd2bb270f6/)
+- [web 服务器使用 `liburing` 实现](/jony.github.io/90d9c32a425c/)
+- [探测支持功能](/jony.github.io/4aa7709cef2f/)
+- [请求链](/jony.github.io/6629bb792093/)
+- [固定的缓冲区](/jony.github.io/48d3d8aca367/)
+- [轮询提交队列](/jony.github.io/973aa4b46332/)
+- [注册一个 _eventfd_ ](/jony.github.io/304bb0ffee1d/)
 
 liburing 参考资料
 
-- liburing 参考资料
-- SQE: 提交队列条目
-- CQE: 完成队列事件
+- [SQE: 提交队列条目](/jony.github.io/1f47a91ce33a/)
+- [CQE: 完成队列事件](/jony.github.io/201d74132273/)
 - 支持的功能
 - 安装和卸载
 - 提交
@@ -51,7 +49,6 @@ liburing 参考资料
 
 io_uring 参考资料
 
-- io_uring 参考资料
 - io_uring_setup
 - io_uring_enter
 - io_uring_register

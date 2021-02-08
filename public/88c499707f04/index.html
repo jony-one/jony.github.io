@@ -20,7 +20,7 @@
 <meta property="og:description" content="io_uring是在Linux下进行异步I&#x2F;O编程的一种强大的新方法。io_uring 消除了上一代I&#x2F;O子系统的各种限制，拥有巨大的前景。关于io_uring带来的更多细节，请参阅“什么是 io_uring ?” 这本IO指南是由Shuveb Hussain创建的，他也是专注于Linux的博客unixism.net的作者。 Contributing 本指南的源代码库在Github上。如果你想投稿">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-02-05T07:19:03.000Z">
-<meta property="article:modified_time" content="2021-02-05T09:02:15.260Z">
+<meta property="article:modified_time" content="2021-02-08T03:52:31.000Z">
 <meta property="article:author" content="Jony.Z.Y">
 <meta property="article:tag" content="io_uring">
 <meta name="twitter:card" content="summary">
@@ -41,7 +41,7 @@
 
   
     <meta property="article:published_time" content="Fri Feb 05 2021 15:19:03 GMT+0800">
-    <meta property="article:modified_time" content="Fri Feb 05 2021 17:02:15 GMT+0800">
+    <meta property="article:modified_time" content="Mon Feb 08 2021 11:52:31 GMT+0800">
   
 
   
@@ -105,7 +105,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">14</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">14</span></a>
         
       </div>
     </div>
@@ -164,7 +164,7 @@
   <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
   <article class="mdui-card mdui-m-b-5">
     <header class="mdui-card-media">
-      <img src="/jony.github.io//images/random/material-14.png" style="max-height: 240px;">
+      <img src="/jony.github.io//images/random/material-19.png" style="max-height: 240px;">
       <div class="mdui-card-media-covered">
         <div class="mdui-card-primary">
           <div class="mdui-card-primary-title">欢迎来到 Lord of the io_uring</div>
@@ -223,27 +223,25 @@
 <h1>文档</h1>
 <p>引言</p>
 <ul>
-<li>Linux 下的异步编程</li>
-<li>什么是 io_uring？</li>
-<li><code>io_uring</code> 的底层接口</li>
+<li><a href="/jony.github.io/493f5652fc23/">Linux 下的异步编程</a></li>
+<li><a href="/jony.github.io/98b4e846459c/">什么是 io_uring？</a></li>
+<li><a href="/jony.github.io/3d70b9e6d77f/"><code>io_uring</code> 的底层接口</a></li>
 </ul>
 <p>教程</p>
 <ul>
-<li>liburing 例子</li>
-<li>cat 使用 liburing 实现</li>
-<li>cp 使用 liburing 实现</li>
-<li>web 服务器使用 liburing 实现</li>
-<li>探测支持的功能</li>
-<li>连接请求</li>
-<li>固定的缓冲区</li>
-<li>提交队列轮询</li>
-<li>注册一个eventfd</li>
+<li><a href="/jony.github.io/33f4e488c2f3/">cat 使用 liburing 实现</a></li>
+<li><a href="/jony.github.io/fbcd2bb270f6/">cp 使用 liburing 实现</a></li>
+<li><a href="/jony.github.io/90d9c32a425c/">web 服务器使用 liburing 实现</a></li>
+<li><a href="/jony.github.io/4aa7709cef2f/">探测支持功能</a></li>
+<li><a href="/jony.github.io/6629bb792093/">请求链</a></li>
+<li><a href="/jony.github.io/48d3d8aca367/">固定的缓冲区</a></li>
+<li><a href="/jony.github.io/973aa4b46332/">轮询提交队列</a></li>
+<li><a href="/jony.github.io/304bb0ffee1d/">注册一个eventfd</a></li>
 </ul>
 <p>liburing 参考资料</p>
 <ul>
-<li>liburing 参考资料</li>
-<li>SQE: 提交队列条目</li>
-<li>CQE: 完成队列事件</li>
+<li><a href="/jony.github.io/1f47a91ce33a/">SQE: 提交队列条目</a></li>
+<li><a href="/jony.github.io/201d74132273/">CQE: 完成队列事件</a></li>
 <li>支持的功能</li>
 <li>安装和卸载</li>
 <li>提交</li>
@@ -252,7 +250,6 @@
 </ul>
 <p>io_uring 参考资料</p>
 <ul>
-<li>io_uring 参考资料</li>
 <li>io_uring_setup</li>
 <li>io_uring_enter</li>
 <li>io_uring_register</li>
@@ -289,11 +286,6 @@
       </a>
     
     <div class="spacer"></div>
-    
-      <a rel="next" class="extend next" href="/jony.github.io/b3ecce39d80d/">
-        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
-      </a>
     
   </nav>
 

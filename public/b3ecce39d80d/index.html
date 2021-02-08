@@ -8,17 +8,19 @@
   <meta name="renderer" content="webkit">
 
   
-  <title>About me | Jony</title>
+  <title>CQE: Completion Queue Event | Jony</title>
 
   <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
   <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="About me">
-<meta property="og:url" content="https://jony-one.github.io/jony.github.io/about/index.html">
+  <meta name="description" content="CQE: Completion Queue Event内核为每个提交的队列条目添加了一个完成队列事件(CQE)。CQE 包含作为 SQE 的一部分提交的操作的状态。作为内核处理 SQE 的结果，只有一个 CQE 添加到完成队列中。这两者之间存在一一对应的关系。 # 注意 这个结构是原始输入输出接口的一部分，在输入输出接口中定义。 12345struct io_uring_cqe &amp;#123;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CQE: Completion Queue Event">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/b3ecce39d80d/index.html">
 <meta property="og:site_name" content="Jony">
+<meta property="og:description" content="CQE: Completion Queue Event内核为每个提交的队列条目添加了一个完成队列事件(CQE)。CQE 包含作为 SQE 的一部分提交的操作的状态。作为内核处理 SQE 的结果，只有一个 CQE 添加到完成队列中。这两者之间存在一一对应的关系。 # 注意 这个结构是原始输入输出接口的一部分，在输入输出接口中定义。 12345struct io_uring_cqe &amp;#123;">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2021-02-05T07:12:55.000Z">
-<meta property="article:modified_time" content="2021-02-05T08:40:14.943Z">
+<meta property="article:published_time" content="2021-01-25T01:33:39.000Z">
+<meta property="article:modified_time" content="2021-02-05T08:40:14.905Z">
 <meta property="article:author" content="Jony.Z.Y">
 <meta name="twitter:card" content="summary">
 
@@ -29,7 +31,7 @@
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Jony">
-  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/about/">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/b3ecce39d80d/">
   <meta name="msapplication-navbutton-color" content="#9C27B0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Jony">
@@ -37,9 +39,12 @@
   <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
 
   
+    <meta property="article:published_time" content="Mon Jan 25 2021 09:33:39 GMT+0800">
+    <meta property="article:modified_time" content="Fri Feb 05 2021 16:40:14 GMT+0800">
+  
 
   
-    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/about/index.html">
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/b3ecce39d80d/">
   
 
   
@@ -158,11 +163,11 @@
   <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
   <article class="mdui-card mdui-m-b-5">
     <header class="mdui-card-media">
-      <img src="/jony.github.io//images/random/material-8.png" style="max-height: 240px;">
+      <img src="/jony.github.io//images/random/material-2.png" style="max-height: 240px;">
       <div class="mdui-card-media-covered">
         <div class="mdui-card-primary">
-          <div class="mdui-card-primary-title">About me</div>
-          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-05 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          <div class="mdui-card-primary-title">CQE: Completion Queue Event</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-01-25 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
         </div>
       </div>
       <div class="mdui-card-menu">
@@ -174,7 +179,7 @@
             
             <li class="mdui-menu-item" disabled>
               
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACZklEQVR42u3aQVLDMAwF0N7/0nAApuF/2XED87JiSuLqZWGrkl5f//p64eHh4eHh4eHhPYz3iq+3y13e+fPz6zvXY8PDw8M7w/tlq31zz3Xo7/7brt/GhoeHh3eSl4R1fVRcb/fJsbESGx4eHt7zeXvvb9fBw8PD++u89hhoyxN4eHh4z+QlP/hnxdZ8zaR4cWOtBQ8PDy/m5SGe//tofw8PDw8v4NUjTXlqWw4cJGMKt8+U4eHh4QW8tuTajg7k1PV48PDw8M7z8qLqrhCvi7n5J3h4eHhP4K2UA/KC7PWrHA5+4eHh4d3Mqx+O2/z5t6yXdPHw8PBO8qIHyjQ3afDnMbQFDjw8PLyTvHbUKQklDzQvi/zyFB4eHt4R3q5tug2ljSEqguDh4eF9iNemxSuNsdnLXRodwMPDw9vEW0+UkxQ8KfsmUdWjA3h4eHibeLOW1azNn7ymZOVi6AoPDw/vQ7xk658dBiv3DIeu8PDw8JZ5RUs+pq6kzvnRUvxiwMPDw9vKy9tObYizezYMHODh4eHdzMtb8kkbbD1RzkcK6nMPDw8Pbytvb1lhlqbPSiT1ZAQeHh7eVl7OyLfvWTPsloMBDw8P7wE5ZxLQSjEiSfTx8PDwzvPaa6U9Ngu3bqrh4eHh3cx7xVc+KNAy8uJvVErGw8PDO8LLD4O2YNEWI9qEGw8PD++zvJUNepYoz17BsNaCh4eH91FeW8BtA501w/Dw8PD+Iq9Nr9s1l4oReHh4eDfw2qZXO3Awa6flzTM8PDy8k7y8BNAeJG263H47Hh4e3nne/7vw8PDw8PDw8PAecH0Dhab3E20VvqAAAAAASUVORK5CYII=">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACWElEQVR42u3aQXLcMAwEwP3/p5MPZJUZkKJkV+vkctEiWwcQBvD586ufDx4eHh4eHh4e3st4n/j5x4u+/P56zbc3JyuTs+Hh4eGd4a0f8XpN8p5tnw8PDw/vIC8J2dcH+rZ+nVdcJ3h4eHiv583AK/vi4eHh/XReUjiYJdB4eHh47+fNwnqeIucFhcdqLXh4eHgxL28ynf/5aH8PDw8PL+C1z66gnzfS6hPi4eHh3czLA3F7nSQtsZWLAQ8PD+8pXrJlWxpoj5u31uoyLh4eHt5DvHxwaldyvDL4hYeHh3c3ry3U7h1jne0+rFLj4eHhbeVdH7HdZtcIbP4GPDw8vGd5xb/9o/X5wNZswAsPDw/vbl70B5cbtEWKNtVuix14eHh4J3kzUp7y5s2tvEmGh4eH905e29ZqW/5t+eM/rTs8PDy847x2KKp9W3uRbBi6wsPDw9vKW0mFk5C9XuCoy7t4eHh4j/KS0D8raswGCzZfDHh4eHgjXrtxni63DbbkGohGxPDw8PBu5q2XBmYt/zaV31CMwMPDw9vKy1tZ14WDPLFuh7GKU+Hh4eEd5+Wb5aWEGbJNvvHw8PDO89oSQNsMy8N9+048PDy8k7z1htb60WcjBUsNMDw8PLwF3izQzzAteDbQgIeHh3eGl18GK+MC658yWomHh4d3kNcG6FnKe3dJAg8PD+/NvHawIEmv87bcsAGGh4eH9yivDeXtZ2pLvXh4eHjneXnTaxayZw2z5GrBw8PDO89bD+5LLaugTFx8Gjw8PLybeb/vwcPDw8PDw8PDe8HzFwkJXckA3HBCAAAAAElFTkSuQmCC">
               
             </li>
           </ul>
@@ -183,35 +188,38 @@
           <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
           <ul class="mdui-menu" id="share_menu">
             <li class="mdui-menu-item">
-              <a href="http://service.weibo.com/share/share.php?appkey=&title=About me&url=https://jony-one.github.io/jony.github.io/about/index.html&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=CQE: Completion Queue Event&url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://twitter.com/intent/tweet?text=About me&url=https://jony-one.github.io/jony.github.io/about/index.html&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+              <a href="https://twitter.com/intent/tweet?text=CQE: Completion Queue Event&url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/about/index.html" target="_blank" class="mdui-ripple">分享到Facebook</a>
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/b3ecce39d80d/" target="_blank" class="mdui-ripple">分享到Facebook</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/about/index.html" target="_blank" class="mdui-ripple">分享到Google+</a>
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/" target="_blank" class="mdui-ripple">分享到Google+</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/about/index.html&title=About me" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/&title=CQE: Completion Queue Event" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=About me&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/about/index.html" target="_blank" class="mdui-ripple">分享到QQ</a>
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=CQE: Completion Queue Event&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/" target="_blank" class="mdui-ripple">分享到QQ</a>
             </li>
             <li class="mdui-menu-item">
-              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/about/index.html&text=About me" target="_blank" class="mdui-ripple">分享到Telegram</a>
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/b3ecce39d80d/&text=CQE: Completion Queue Event" target="_blank" class="mdui-ripple">分享到Telegram</a>
             </li>
           </ul>
         
       </div>
     </header>
     <div class="mdui-card-content mdui-typo">
-      
+      <h1 id="CQE-Completion-Queue-Event"><a href="#CQE-Completion-Queue-Event" class="headerlink" title="CQE: Completion Queue Event"></a>CQE: Completion Queue Event</h1><p>内核为每个提交的队列条目添加了一个完成队列事件(CQE)。CQE 包含作为 SQE 的一部分提交的操作的状态。作为内核处理 SQE 的结果，只有一个 CQE 添加到完成队列中。这两者之间存在一一对应的关系。</p>
+<pre><code># 注意
+这个结构是原始输入输出接口的一部分，在输入输出接口中定义。</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">io_uring_cqe</span> &#123;</span></span><br><span class="line">    __u64   user_data;      <span class="comment">/* sqe-&gt;data 提交内容已传回 */</span></span><br><span class="line">    __s32   res;            <span class="comment">/* 此事件的结果代码 */</span></span><br><span class="line">    __u32   flags;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
       <blockquote class="mdui-m-t-5">
         
-        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/about/index.html">https://jony-one.github.io/jony.github.io/about/index.html</a>
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/b3ecce39d80d/">https://jony-one.github.io/jony.github.io/b3ecce39d80d/</a>
       </blockquote>
       
     </div>
@@ -227,6 +235,22 @@
 
   <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
 
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/88c499707f04/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/e6adb88efbe0/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
 
 
   <div id="comment" class="mdui-m-t-5">

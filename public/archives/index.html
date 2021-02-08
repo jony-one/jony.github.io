@@ -97,7 +97,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">9</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">14</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
         
       </div>
     </div>
@@ -109,7 +109,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">9</span></a>
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">14</span></a>
         
       </div>
     </div>
@@ -121,7 +121,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">9</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">14</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
         
       </div>
     </div>
@@ -152,22 +152,22 @@
   <main id="main" class="mdui-m-t-5 fadeIn animated">
 
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/tutorial/link_liburing/">
+    <a href="/jony.github.io/201d74132273/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-1.png" style="max-height: 240px;">
+        <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">请求链</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+            <div class="mdui-card-primary-title">CQE:完成队列条目</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-08 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
           </div>
         </div>
       </header>
     </a>
     <div class="mdui-card-content mdui-typo">
       
-        在io_uring中，完成没有按照提交的问题所在的顺序到达。这在
+        内核为每个提交的队列条目添加了一个完成队列事件(CQE)。CQE 包含作为 SQE 的一部分提交的操作的状态。作为内核处理 SQE 的结果，只有一个...
       
-      <a href="/jony.github.io/2021/02/07/io_uring/tutorial/link_liburing/">阅读更多 >></a>
+      <a href="/jony.github.io/201d74132273/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
       
@@ -180,9 +180,149 @@
   </article>
 
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/tutorial/probe_liburing/">
+    <a href="/jony.github.io/1f47a91ce33a/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-11.png" style="max-height: 240px;">
+        <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+        <div class="mdui-card-media-covered">
+          <div class="mdui-card-primary">
+            <div class="mdui-card-primary-title">SQE:提交队列条目</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-08 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          </div>
+        </div>
+      </header>
+    </a>
+    <div class="mdui-card-content mdui-typo">
+      
+        提交队列条目(SQE)是用来告诉 io_uring 你想要做什么，比如读取一个文件，写一...
+      
+      <a href="/jony.github.io/1f47a91ce33a/">阅读更多 >></a>
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+  </article>
+
+  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
+    <a href="/jony.github.io/304bb0ffee1d/">
+      <header class="mdui-card-media mdui-ripple">
+        <img src="/jony.github.io//images/random/material-9.png" style="max-height: 240px;">
+        <div class="mdui-card-media-covered">
+          <div class="mdui-card-primary">
+            <div class="mdui-card-primary-title">注册一个eventfd</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-08 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          </div>
+        </div>
+      </header>
+    </a>
+    <div class="mdui-card-content mdui-typo">
+      
+        关于 eventfd(2...
+      
+      <a href="/jony.github.io/304bb0ffee1d/">阅读更多 >></a>
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+  </article>
+
+  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
+    <a href="/jony.github.io/973aa4b46332/">
+      <header class="mdui-card-media mdui-ripple">
+        <img src="/jony.github.io//images/random/material-17.png" style="max-height: 240px;">
+        <div class="mdui-card-media-covered">
+          <div class="mdui-card-primary">
+            <div class="mdui-card-primary-title">轮询提交队列</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          </div>
+        </div>
+      </header>
+    </a>
+    <div class="mdui-card-content mdui-typo">
+      
+        减少系统调用的次数是 io_uring 的一个主要目的。为此， io_uring 允许你提交I/...
+      
+      <a href="/jony.github.io/973aa4b46332/">阅读更多 >></a>
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+  </article>
+
+  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
+    <a href="/jony.github.io/48d3d8aca367/">
+      <header class="mdui-card-media mdui-ripple">
+        <img src="/jony.github.io//images/random/material-17.png" style="max-height: 240px;">
+        <div class="mdui-card-media-covered">
+          <div class="mdui-card-primary">
+            <div class="mdui-card-primary-title">固定缓冲区</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          </div>
+        </div>
+      </header>
+    </a>
+    <div class="mdui-card-content mdui-typo">
+      
+        使用固定缓冲区的思想是这样的:您提供一组用iovec结构体数组描述的缓冲区，并使用 [io_uring_reg...
+      
+      <a href="/jony.github.io/48d3d8aca367/">阅读更多 >></a>
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+  </article>
+
+  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
+    <a href="/jony.github.io/6629bb792093/">
+      <header class="mdui-card-media mdui-ripple">
+        <img src="/jony.github.io//images/random/material-8.png" style="max-height: 240px;">
+        <div class="mdui-card-media-covered">
+          <div class="mdui-card-primary">
+            <div class="mdui-card-primary-title">请求链</div>
+            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+          </div>
+        </div>
+      </header>
+    </a>
+    <div class="mdui-card-content mdui-typo">
+      
+        在io_uring中，完成没有按照提交的问题所在的顺序到达。这在
+      
+      <a href="/jony.github.io/6629bb792093/">阅读更多 >></a>
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+  </article>
+
+  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
+    <a href="/jony.github.io/4aa7709cef2f/">
+      <header class="mdui-card-media mdui-ripple">
+        <img src="/jony.github.io//images/random/material-9.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">探索支持功能</div>
@@ -196,7 +336,7 @@
         下面的程序演示了如何使用 io_uring_get_probe() 。它打印出是否支持某个操作。
 
       
-      <a href="/jony.github.io/2021/02/07/io_uring/tutorial/probe_liburing/">阅读更多 >></a>
+      <a href="/jony.github.io/4aa7709cef2f/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
       
@@ -209,9 +349,9 @@
   </article>
 
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/tutorial/webserver_liburing/">
+    <a href="/jony.github.io/90d9c32a425c/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-2.png" style="max-height: 240px;">
+        <img src="/jony.github.io//images/random/material-11.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">liburing 实现 web 服务器</div>
@@ -225,7 +365,7 @@
         liburing 实现 web 服务器
 我们在
       
-      <a href="/jony.github.io/2021/02/07/io_uring/tutorial/webserver_liburing/">阅读更多 >></a>
+      <a href="/jony.github.io/90d9c32a425c/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
       
@@ -238,9 +378,9 @@
   </article>
 
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/">
+    <a href="/jony.github.io/fbcd2bb270f6/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+        <img src="/jony.github.io//images/random/material-16.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">liburing 实现 cp 命令</div>
@@ -254,7 +394,7 @@
         liburing 实现 cp 命令
 在前面的小节中，我们看到了如何使用liburing提供的高级接口来构建相当于Unix cat的...
       
-      <a href="/jony.github.io/2021/02/07/io_uring/tutorial/cp_liburing/">阅读更多 >></a>
+      <a href="/jony.github.io/fbcd2bb270f6/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
       
@@ -267,7 +407,7 @@
   </article>
 
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/tutorial/cat_liburing/">
+    <a href="/jony.github.io/33f4e488c2f3/">
       <header class="mdui-card-media mdui-ripple">
         <img src="/jony.github.io//images/random/material-9.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
@@ -283,7 +423,7 @@
         cat 使用 liburing 实现
 我们看到，用io_uring构建一个读取文件的程序这么简单的东西，可能并不那么简单。事实证明...
       
-      <a href="/jony.github.io/2021/02/07/io_uring/tutorial/cat_liburing/">阅读更多 >></a>
+      <a href="/jony.github.io/33f4e488c2f3/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
       
@@ -291,143 +431,6 @@
       
       
         <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
-      
-    </footer>
-  </article>
-
-  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/low_level/">
-      <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-18.png" style="max-height: 240px;">
-        <div class="mdui-card-media-covered">
-          <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">io_uring 底层接口</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
-          </div>
-        </div>
-      </header>
-    </a>
-    <div class="mdui-card-content mdui-typo">
-      
-        io_uring 的底层接口
-正如在前一个文章中所建议的那样，您不太可能在正式的程序中使用 io_uring
-      
-      <a href="/jony.github.io/2021/02/07/io_uring/low_level/">阅读更多 >></a>
-    </div>
-    <footer class="mdui-card-actions">
-      
-        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
-      
-      
-        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
-      
-    </footer>
-  </article>
-
-  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/what_is_io_uring/">
-      <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
-        <div class="mdui-card-media-covered">
-          <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">io_uring 是什么?</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
-          </div>
-        </div>
-      </header>
-    </a>
-    <div class="mdui-card-content mdui-typo">
-      
-        io_uring 是一个新的 Linux 异步 I/O API，由 Facebook 的 Jens Axboe 创建。它的目的是提供一个不受当前
-      
-      <a href="/jony.github.io/2021/02/07/io_uring/what_is_io_uring/">阅读更多 >></a>
-    </div>
-    <footer class="mdui-card-actions">
-      
-        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
-      
-      
-        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
-      
-    </footer>
-  </article>
-
-  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/07/io_uring/async_intro/">
-      <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-4.png" style="max-height: 240px;">
-        <div class="mdui-card-media-covered">
-          <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">Linux 下异步编程</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
-          </div>
-        </div>
-      </header>
-    </a>
-    <div class="mdui-card-content mdui-typo">
-      
-        我们生活在这样一个时代，我们使用的大多数应用程序都在云上运行。每当用户连接到基于云的应用程序时，通常编写在某种web框架之上的大多数业务逻辑都会运行...
-      
-      <a href="/jony.github.io/2021/02/07/io_uring/async_intro/">阅读更多 >></a>
-    </div>
-    <footer class="mdui-card-actions">
-      
-        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
-      
-      
-        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论</a>
-      
-    </footer>
-  </article>
-
-  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/02/05/io_uring/index/">
-      <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-14.png" style="max-height: 240px;">
-        <div class="mdui-card-media-covered">
-          <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">欢迎来到 Lord of the io_uring</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-05 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
-          </div>
-        </div>
-      </header>
-    </a>
-    <div class="mdui-card-content mdui-typo">
-      
-        io_uring是在Linux下进行异步I/O编程的一种强大的新方法。io_uring 消除了上一代I/O子系统的各种限制...
-      
-      <a href="/jony.github.io/2021/02/05/io_uring/index/">阅读更多 >></a>
-    </div>
-    <footer class="mdui-card-actions">
-      
-        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
-      
-      
-        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
-      
-    </footer>
-  </article>
-
-  <article class="mdui-card mdui-m-b-5 mdui-hoverable">
-    <a href="/jony.github.io/2021/01/25/CQE-Completion-Queue-Event/">
-      <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-17.png" style="max-height: 240px;">
-        <div class="mdui-card-media-covered">
-          <div class="mdui-card-primary">
-            <div class="mdui-card-primary-title">CQE: Completion Queue Event</div>
-            <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-01-25 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
-          </div>
-        </div>
-      </header>
-    </a>
-    <div class="mdui-card-content mdui-typo">
-      
-        
-      
-      <a href="/jony.github.io/2021/01/25/CQE-Completion-Queue-Event/">阅读更多 >></a>
-    </div>
-    <footer class="mdui-card-actions">
-      
       
     </footer>
   </article>
@@ -453,7 +456,7 @@
     
   </div>
   <div class="mdui-p-y-1 mdui-text-center">
-    Copyright &copy; 2019 - 2021 Jony.Z.Y<br>
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
     Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
     
   </div>

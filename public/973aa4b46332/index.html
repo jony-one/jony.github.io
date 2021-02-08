@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>轮询提交队列 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="减少系统调用的次数是 io_uring 的一个主要目的。为此， io_uring 允许你提交I&#x2F;O请求，而不需要进行一次系统调用。这是通过 io_uring 支持的一个特殊的提交队列轮询功能实现的。在这种模式下，当你的程序设置了轮询模式后， io_uring 就会启动一个特殊的内核线程，轮询共享的提交队列，查看你的程序可能添加的条目。这样一来，你只需要向共享队列提交条目，内核线程就会看到它，并获取">
+<meta property="og:type" content="article">
+<meta property="og:title" content="轮询提交队列">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/973aa4b46332/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="减少系统调用的次数是 io_uring 的一个主要目的。为此， io_uring 允许你提交I&#x2F;O请求，而不需要进行一次系统调用。这是通过 io_uring 支持的一个特殊的提交队列轮询功能实现的。在这种模式下，当你的程序设置了轮询模式后， io_uring 就会启动一个特殊的内核线程，轮询共享的提交队列，查看你的程序可能添加的条目。这样一来，你只需要向共享队列提交条目，内核线程就会看到它，并获取">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-02-07T09:54:16.000Z">
+<meta property="article:modified_time" content="2021-02-08T01:36:54.859Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="io_uring">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",io_uring">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/973aa4b46332/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Sun Feb 07 2021 17:54:16 GMT+0800">
+    <meta property="article:modified_time" content="Mon Feb 08 2021 09:36:54 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/973aa4b46332/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.3.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">14</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/01/">一月 2021<span class="mdui-ripple sidebar_archives-count">6</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">14</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">14</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">轮询提交队列</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-07 / <i class="iconfont">&#xe601;</i> Jony.Z.Y</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACWklEQVR42u3aQXLlMAgFwH//S2e22UTzAEl2Uu3Vr4otq70QBPh8/enrg4eHh4eHh4eH9zLeJ75+euo/L1s++/2vyZ3R3vDw8PCu8KpbXG90vbnCEd/7fHh4eHgXecmRnWx0fdznAaa6Nzw8PLw383rH93r99cp4eHh4v52XbDTZ9DpI4OHh4b2fl6fIVVIv7X6g1oKHh4cX8/Im0/3fV/t7eHh4eAGvelUP8V6JYbRDPDw8vMO8/CCuhpM8Oe4FBjw8PLyneJN/++el2LzMkayPh4eH9ywvH7rKSxgnmmHNwICHh4c35k0S3OSVkzGFcrqPh4eHd5iXj09Vw0CVMR+3wsPDw3sPr1ewWBd/8zQ6vx8PDw/vDi96IBgLyJtkeSmk2mbDw8PDe5aXHOt5Yp2DN5Q88PDw8K7z8t956nyiGFEYHcDDw8M7xps0wCbJ8a7PhIeHh/csb0MLv5igV1tfo6ErPDw8vMO8/Kq2zXrDB5sDAx4eHl6LlxzQ8w+Rp+OT8ICHh4d3mpe0tfKUt9ry31WewMPDw7vPqwKqgaEXWppP4eHh4T3Kq7ajqiMIu9ppeHh4eE/xqiWAajOsWqrorYmHh4d3mtdrcU0Kvs1NB8EGDw8P7w7vxEHfG8lKBgiit+Ph4eFd4eXBIE+vq4lyUtJdfzI8PDy8+7xdB/TknnmIwsPDw3szL1lnvXL+UZIBLDw8PLzfwqsOaeVDVM1SCB4eHt5FXt70yocAJgl3NbTg4eHh3eRVi63rTZRbVq3QUijj4uHh4W3l/b0LDw8PDw8PDw/vBdc/D4KGkjnmfoIAAAAASUVORK5CYII=">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=轮询提交队列&url=https://jony-one.github.io/jony.github.io/973aa4b46332/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=轮询提交队列&url=https://jony-one.github.io/jony.github.io/973aa4b46332/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/973aa4b46332/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/973aa4b46332/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/973aa4b46332/&title=轮询提交队列" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=轮询提交队列&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/973aa4b46332/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/973aa4b46332/&text=轮询提交队列" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <p>减少系统调用的次数是 <code>io_uring</code> 的一个主要目的。为此， <code>io_uring</code> 允许你提交I/O请求，而不需要进行一次系统调用。这是通过 <code>io_uring</code> 支持的一个特殊的提交队列轮询功能实现的。在这种模式下，当你的程序设置了轮询模式后， <code>io_uring</code> 就会启动一个特殊的内核线程，轮询共享的提交队列，查看你的程序可能添加的条目。这样一来，你只需要向共享队列提交条目，内核线程就会看到它，并获取提交队列条目，而不需要你的程序进行 <a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_enter()</a> 系统调用，这通常由<code>liburing</code> 来处理。这是在用户空间和内核之间共享队列的一个好处。</p>
+<p>如何使用这种模式？这个想法很简单。你通过在 <code>io_uring_params</code> 结构的 <code>flags</code> 成员中设置 <code>IORING_SETUP_SQPOLL</code> 标志来告诉 <code>io_uring</code> 你想使用这个模式。如果和你的进程一起启动的内核线程在一段时间内没有看到任何提交，它就会退出，你的程序需要再调用一次 <a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_enter()</a>系统调用来唤醒它。这个时间段可以通过 :c:struct`io_uring_params` 结构的 <code>sq_thread_idle</code> 成员来配置。但是，如果不断收到提交，内核轮询器线程应该永远不会休眠</p>
+<pre><code> # 注意：
+ 当使用 liburing 时，你永远不会直接调用 [io_uring_enter()](https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter) 系统调用。这通常由liburing的 [io_uring_submit()](https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_submit) 函数来处理。它能自动判断你是否使用轮询模式，并处理你的程序何时需要调用 [io_uring_enter()](https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter)，而不需要你判断。
+
+ # 注意
+ 内核的轮询线程会占用大量的CPU。你需要小心使用这个功能。设置一个非常大的sq_thread_idle值会导致内核线程在你的程序没有提交时继续消耗CPU。如果你真的期望处理大量的I/O，那么使用这个特性是个好主意。而即使你这样做，也最好将轮询线程的空闲值设置为最多几秒钟。
+</code></pre>
+<p>但是，如果您需要使用此功能，则还需要将其与 <a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/advanced_usage.html#c.io_uring_register_files">io_uring_register_files()</a>结合使用。使用它，您可以预先告诉内核有关文件描述符数组的信息。这只是您在启动I/O之前打开的常规文件描述符的数组。在提交期间，您需要在SQE的 <code>flags</code> 字段中设置 <code>IOSQE_FIXED_FILE</code> 标志，并传递您之前设置的文件描述符数组中的文件描述符的索引，而不是像通常那样将文件描述符传递给<a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_read">io_uring_prep_read()</a>或 <a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_write">io_uring_prep_write()</a> 等调用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;liburing.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUF_SIZE    512</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FILE_NAME1  <span class="meta-string">&quot;/tmp/io_uring_sq_test.txt&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> STR1        <span class="meta-string">&quot;What is this life if, full of care,\n&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> STR2        <span class="meta-string">&quot;We have no time to stand and stare.&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">print_sq_poll_kernel_thread_status</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (system(<span class="string">&quot;ps --ppid 2 | grep io_uring-sq&quot;</span> ) == <span class="number">0</span>)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Kernel thread io_uring-sq found running...\n&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Kernel thread io_uring-sq is not running.\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">start_sq_polling_ops</span><span class="params">(struct io_uring *ring)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> fds[<span class="number">2</span>];</span><br><span class="line">    <span class="keyword">char</span> buff1[BUF_SIZE];</span><br><span class="line">    <span class="keyword">char</span> buff2[BUF_SIZE];</span><br><span class="line">    <span class="keyword">char</span> buff3[BUF_SIZE];</span><br><span class="line">    <span class="keyword">char</span> buff4[BUF_SIZE];</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">io_uring_sqe</span> *<span class="title">sqe</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">io_uring_cqe</span> *<span class="title">cqe</span>;</span></span><br><span class="line">    <span class="keyword">int</span> str1_sz = <span class="built_in">strlen</span>(STR1);</span><br><span class="line">    <span class="keyword">int</span> str2_sz = <span class="built_in">strlen</span>(STR2);</span><br><span class="line"></span><br><span class="line">    fds[<span class="number">0</span>] = open(FILE_NAME1, O_RDWR | O_TRUNC | O_CREAT, <span class="number">0644</span>);</span><br><span class="line">    <span class="keyword">if</span> (fds[<span class="number">0</span>] &lt; <span class="number">0</span> ) &#123;</span><br><span class="line">        perror(<span class="string">&quot;open&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(buff1, <span class="number">0</span>, BUF_SIZE);</span><br><span class="line">    <span class="built_in">memset</span>(buff2, <span class="number">0</span>, BUF_SIZE);</span><br><span class="line">    <span class="built_in">memset</span>(buff3, <span class="number">0</span>, BUF_SIZE);</span><br><span class="line">    <span class="built_in">memset</span>(buff4, <span class="number">0</span>, BUF_SIZE);</span><br><span class="line">    <span class="built_in">strncpy</span>(buff1, STR1, str1_sz);</span><br><span class="line">    <span class="built_in">strncpy</span>(buff2, STR2, str2_sz);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> ret = io_uring_register_files(ring, fds, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span>(ret) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error registering buffers: %s&quot;</span>, strerror(-ret));</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    sqe = io_uring_get_sqe(ring);</span><br><span class="line">    <span class="keyword">if</span> (!sqe) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Could not get SQE.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    io_uring_prep_write(sqe, <span class="number">0</span>, buff1, str1_sz, <span class="number">0</span>);</span><br><span class="line">    sqe-&gt;flags |= IOSQE_FIXED_FILE;</span><br><span class="line"></span><br><span class="line">    sqe = io_uring_get_sqe(ring);</span><br><span class="line">    <span class="keyword">if</span> (!sqe) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Could not get SQE.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    io_uring_prep_write(sqe, <span class="number">0</span>, buff2, str2_sz, str1_sz);</span><br><span class="line">    sqe-&gt;flags |= IOSQE_FIXED_FILE;</span><br><span class="line"></span><br><span class="line">    io_uring_submit(ring);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">2</span>; i ++) &#123;</span><br><span class="line">        <span class="keyword">int</span> ret = io_uring_wait_cqe(ring, &amp;cqe);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error waiting for completion: %s\n&quot;</span>,</span><br><span class="line">                    strerror(-ret));</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* Now that we have the CQE, let&#x27;s process the data */</span></span><br><span class="line">        <span class="keyword">if</span> (cqe-&gt;res &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error in async operation: %s\n&quot;</span>, strerror(-cqe-&gt;res));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Result of the operation: %d\n&quot;</span>, cqe-&gt;res);</span><br><span class="line">        io_uring_cqe_seen(ring, cqe);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    print_sq_poll_kernel_thread_status();</span><br><span class="line"></span><br><span class="line">    sqe = io_uring_get_sqe(ring);</span><br><span class="line">    <span class="keyword">if</span> (!sqe) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Could not get SQE.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    io_uring_prep_read(sqe, <span class="number">0</span>, buff3, str1_sz, <span class="number">0</span>);</span><br><span class="line">    sqe-&gt;flags |= IOSQE_FIXED_FILE;</span><br><span class="line"></span><br><span class="line">    sqe = io_uring_get_sqe(ring);</span><br><span class="line">    <span class="keyword">if</span> (!sqe) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Could not get SQE.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    io_uring_prep_read(sqe, <span class="number">0</span>, buff4, str2_sz, str1_sz);</span><br><span class="line">    sqe-&gt;flags |= IOSQE_FIXED_FILE;</span><br><span class="line"></span><br><span class="line">    io_uring_submit(ring);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">2</span>; i ++) &#123;</span><br><span class="line">        <span class="keyword">int</span> ret = io_uring_wait_cqe(ring, &amp;cqe);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error waiting for completion: %s\n&quot;</span>,</span><br><span class="line">                    strerror(-ret));</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* Now that we have the CQE, let&#x27;s process the data */</span></span><br><span class="line">        <span class="keyword">if</span> (cqe-&gt;res &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Error in async operation: %s\n&quot;</span>, strerror(-cqe-&gt;res));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Result of the operation: %d\n&quot;</span>, cqe-&gt;res);</span><br><span class="line">        io_uring_cqe_seen(ring, cqe);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Contents read from file:\n&quot;</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s%s&quot;</span>, buff3, buff4);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">io_uring</span> <span class="title">ring</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">io_uring_params</span> <span class="title">params</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (geteuid()) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;You need root privileges to run this program.\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    print_sq_poll_kernel_thread_status();</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(&amp;params, <span class="number">0</span>, <span class="keyword">sizeof</span>(params));</span><br><span class="line">    params.flags |= IORING_SETUP_SQPOLL;</span><br><span class="line">    params.sq_thread_idle = <span class="number">2000</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> ret = io_uring_queue_init_params(<span class="number">8</span>, &amp;ring, &amp;params);</span><br><span class="line">    <span class="keyword">if</span> (ret) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Unable to setup io_uring: %s\n&quot;</span>, strerror(-ret));</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    start_sq_polling_ops(&amp;ring);</span><br><span class="line">    io_uring_queue_exit(&amp;ring);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1>它是如何工作的</h1>
+<p>这个示例程序很像我们之前看到的固定缓冲区示例。虽然我们使用 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_read_fixed">io_uring_prep_read_fixed()</a></strong> 和 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_write_fixed">io_uring_prep_write_fixed()</a></strong> 等专门函数来处理固定缓冲区，但我们使用了 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_read">io_uring_prep_read()</a></strong>、<strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_readv">io_uring_prep_readv()</a></strong>、**<a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_write">io_uring_prep_write()</a><strong>或</strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_writev">io_uring_prep_writev()</a><strong>等常规函数。然而，在使用描述提交的SQE中，设置 <code>IOSQE_FIXED_FILE</code> 标志时，在文件描述符数组中使用文件描述符的索引，而不是在调用</strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_readv">io_uring_prep_readv()</a>**和 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_writev">io_uring_prep_writev()</a></strong> 等调用中使用文件描述符本身。</p>
+<p>当程序启动时，在我们设置 <code>io_uring</code> 实例之前，我们打印执行提交队列轮询的内核线程的运行状态。此线程的名称为 <code>io_uring-sq</code> 。函数 <code>print_sq_poll_kernel_thread_status()</code> 负责打印此状态。当然，如果有任何其他进程使用提交队列轮询，您将看到该内核线程确实在运行。所有内核线程的父线是 <code>kthreadd</code> 内核线程，这个线程是在 <code>init</code>之后马上启动的，众所周知，它的进程ID为1。因此，<code>kthreadd</code> 的PID为2，我们可以利用这一事实作为一种简单的优化来只过滤内核线程。</p>
+<p>为了初始化<code>io_uring</code>，我们使用 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/setup_teardown.html#c.io_uring_queue_init_params">io_uring_queue_init_params()</a></strong> 而不是常用的 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/setup_teardown.html#c.io_uring_queue_init">io_uring_queue_init()</a></strong> ，因为这需要一个指向 <strong>io_uring_params</strong> 结构的指针作为参数。正是在这个参数中，我们指定了 <code>IORING_SETUP_SQPOLL</code> 作为 <code>flags</code> 字段的一部分，并将 <code>sq_thread_idle</code> 设置为2000，这是提交队列轮询器内核线程的空闲时间。如果在这许多毫秒内没有提交，线程就会退出，需要通过 <code>liburing</code> 在内部进行 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_enter()</a></strong> 系统调用，让内核线程再次启动。</p>
+<p>由于提交队列轮询只能与固定文件结合使用，因此我们首先要注册处理的唯一文件描述符。如果要处理更多的文件，这时你要用 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/advanced_usage.html#c.io_uring_register_files">io_uring_register_files()</a></strong> 函数打开并注册它们。对于每次提交，您需要使用 <code>io_sqe_set_flag()</code> 辅助函数设置 <code>IOSQE_FIXED_FILE</code> 标志，并将注册文件数组中打开文件的索引(而不是实际文件描述符本身)提供给 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_read">io_uring_prep_read()</a></strong> 或 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_prep_write">io_uring_prep_write()</a></strong> 等函数。</p>
+<p>在这个例子中，我们有4个缓冲区。前2个缓冲区被2个写操作用来向文件中各写一行。之后，我们用第3个和第4个缓冲区再进行2次读操作，读取这2行写入的内容并打印出来。写操作结束后，我们打印 <code>io_uring-sq</code> 内核线程的状态，现在我们应该发现它正在运行。</p>
+<pre><code>➜  sudo ./sq_poll
+[sudo] password for shuveb:
+Kernel thread io_uring-sq is not running.
+Result of the operation: 36
+Result of the operation: 35
+   1750 ?        00:00:00 io_uring-sq
+Kernel thread io_uring-sq found running...
+Result of the operation: 36
+Result of the operation: 35
+Contents read from file:
+What is this life if, full of care,
+We have no time to stand and stare.%    
+</code></pre>
+<h1>通过内核验证轮询</h1>
+<p>但是，您需要调用 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-liburing/submission.html#c.io_uring_submit">io_uring_submit()</a></strong>。我们在前面的示例中看到，这会导致发出 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_enter()</a></strong> 系统调用。但是，在已经设置了 <code>IORING_SETUP_SQPOLL</code> 标志的情况下不是这样。 <code>liburing</code> 完全隐藏了这一点，同时保持了程序的持续接口。但是，我们能证实这一点吗?当然，我们可以通过使用eBPF的 <code>bpftrace</code> 程序来窥探系统。这里，我们将在 <code>io_uring</code> 设置的内核中使用跟踪点来证明，当我们设置 <code>IORING_SETUP_SQPOLL</code> 并提交I/O请求时，尽管我们调用了 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_submit()</a></strong> 函数，但我们的程序不会执行 <strong><a target="_blank" rel="noopener" href="https://unixism.net/loti/ref-iouring/io_uring_enter.html#c.io_uring_enter">io_uring_enter()</a></strong> 系统调用。如前所述，对于高吞吐量的程序，我们的想法是尽可能地避免系统调用。</p>
+<p>在下面的程序中，我们添加一个 tracepoint 到 <code>io_uring</code> 的 <code>io_uring_submit_sqe</code> 。每当一个SQE被提交给内核时，这个tracepoint就会被触发。每次这个tracepoint被触发，我们使用 <code>bpftrace</code> 来打印命令的名称和它的PID。首先，让我们在一个终端上运行 <code>bpftrace</code> 命令，同时在另一个终端上运行<a target="_blank" rel="noopener" href="https://unixism.net/loti/tutorial/fixed_buffers.html#fixed-buffers">固定缓冲区</a>的例子。下面是我机器上的输出示例。你可以看到 <code>fixed_buffers</code> 是提交SQE的那个。</p>
+<pre><code>➜  sudo bpftrace -e 'tracepoint:io_uring:io_uring_submit_sqe &#123;printf(&quot;%s(%d)\n&quot;, comm, pid);&#125;'
+Attaching 1 probe...
+fixed_buffers(30336)
+fixed_buffers(30336)
+fixed_buffers(30336)
+fixed_buffers(30336)
+</code></pre>
+<p>让我们重复前面的练习，但现在运行当前的例子。你可以看到，SQE的提交是通过 <code>io_uring_sq</code> 内核线程进行的。因此我们避免了系统调用。</p>
+<pre><code>➜  sudo bpftrace -e 'tracepoint:io_uring:io_uring_submit_sqe &#123;printf(&quot;%s(%d)\n&quot;, comm, pid);&#125;'
+io_uring-sq(30429)
+io_uring-sq(30429)
+io_uring-sq(30429)
+io_uring-sq(30429)
+</code></pre>
+<h1>源代码</h1>
+<p>这个和其他例子的源代码可以在 <a target="_blank" rel="noopener" href="https://github.com/shuveb/loti-examples">Github</a> 上找到。</p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/973aa4b46332/">https://jony-one.github.io/jony.github.io/973aa4b46332/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/304bb0ffee1d/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/48d3d8aca367/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

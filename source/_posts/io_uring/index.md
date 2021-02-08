@@ -1,10 +1,10 @@
 ---
 title: 欢迎来到 Lord of the io_uring
 date: 2021-02-05 15:19:03
-categories: ["Lord of the io_uring"]
+categories: ["Lord of the io_uring","导航"]
 tags:
   - io_uring
-	
+author: Jony
 ---
 io_uring是在Linux下进行异步I/O编程的一种强大的新方法。`io_uring` 消除了上一代I/O子系统的各种限制，拥有巨大的前景。关于io_uring带来的更多细节，请参阅“[什么是 `io_uring`]() ?”
 

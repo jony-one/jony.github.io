@@ -68,7 +68,7 @@ index_generator:
 
 # Category & Tag
 default_category: uncategorized
-category_map: ["Lord of the io_uring","导航"]
+category_map: []
 tag_map:
 
 # Metadata elements

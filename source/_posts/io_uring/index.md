@@ -1,9 +1,12 @@
 ---
 title: 欢迎来到 Lord of the io_uring
 date: 2021-02-05 15:19:03
-categories: ["Lord of the io_uring","导航"]
+categories: 
+	- [Lord of the io_uring]
+	- 导航
 tags:
   - io_uring
+
 author: Jony
 ---
 io_uring是在Linux下进行异步I/O编程的一种强大的新方法。`io_uring` 消除了上一代I/O子系统的各种限制，拥有巨大的前景。关于io_uring带来的更多细节，请参阅“[什么是 `io_uring`]() ?”
@@ -41,9 +44,9 @@ liburing 参考资料
 
 - [SQE: 提交队列条目](/jony.github.io/1f47a91ce33a/)
 - [CQE: 完成队列事件](/jony.github.io/201d74132273/)
-- 支持的功能
-- 安装和卸载
-- 提交
+- [支持的功能](/jony.github.io/df6e31d86020/)
+- [设置和删除](/jony.github.io/50174ef713ea/)
+- [提交](/jony.github.io/b74dca1de80f/)
 - 完成
 - 高级使用
 

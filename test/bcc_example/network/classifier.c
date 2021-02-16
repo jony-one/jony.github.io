@@ -21,24 +21,24 @@
 #endif
 
 #define bpf_htons(x) \
-  (__builtin_constant_p(x) ? __bpf_constant_htons(x) : __bpf_htons(x))
+    (__builtin_constant_p(x) ? __bpf_constant_htons(x) : __bpf_htons(x))
 
 static int (*bpf_trace_printk)(const char *fmt, int fmt_size,
                                ...) = (void *)BPF_FUNC_trace_printk;
 
-#define trace_printk(fmt, ...)                                                 \
-  do {                                                                         \
-    char _fmt[] = fmt;                                                         \
-    bpf_trace_printk(_fmt, sizeof(_fmt), ##__VA_ARGS__);                       \
-  } while (0)
+#define trace_printk(fmt, ...)                               \
+    do                                                       \
+    {                                                        \
+        char _fmt[] = fmt;                                   \
+        bpf_trace_printk(_fmt, sizeof(_fmt), ##__VA_ARGS__); \
+    } while (0)
 
-unsigned long long load_byte(void *skb,unsigned long long off) asm("llvm.bpf.load.byte");
+unsigned long long load_byte(void *skb, unsigned long long off) asm("llvm.bpf.load.byte");
 
 struct http_payload
 {
     int method;
 };
-
 
 static inline int is_http(struct __sk_buff *skb, __u64 nh_off);
 
@@ -48,7 +48,8 @@ typedef __uint32_t unint32_t;
 typedef __uint64_t unint64_t;
 
 SEC("classifier")
-static inline int classification(struct __sk_buff *skb){
+static inline int classification(struct __sk_buff *skb)
+{
 
     void *data_end = (void *)(long)skb->data_end;
     void *data = (void *)(long)skb->data;
@@ -59,14 +60,17 @@ static inline int classification(struct __sk_buff *skb){
     __u64 nh_off;
     nh_off = sizeof(*eth);
 
-    if(data + nh_off > data_end){
+    if (data + nh_off > data_end)
+    {
         return TC_ACT_OK;
     }
 
     h_proto = eth->h_proto;
 
-    if(h_proto == bpf_htons(ETH_P_IP)){
-        if(is_http(skb,nh_off) == 1){
+    if (h_proto == bpf_htons(ETH_P_IP))
+    {
+        if (is_http(skb, nh_off) == 1)
+        {
             trace_printk("is http ok\n");
         }
     }
@@ -74,20 +78,22 @@ static inline int classification(struct __sk_buff *skb){
     return TC_ACT_OK;
 }
 
-
-static inline int is_http(struct __sk_buff *skb, __u64 nh_off){
+static inline int is_http(struct __sk_buff *skb, __u64 nh_off)
+{
 
     void *data_end = (void *)(long)skb->data_end;
     void *data = (void *)(long)skb->data;
 
     struct iphdr *iph = data + nh_off;
 
-    if(iph + 1 > data_end){
+    if (iph + 1 > data_end)
+    {
         return 0;
     }
 
-    if(iph->protocol == IPPROTO_TCP){
-        return 0 ;
+    if (iph->protocol == IPPROTO_TCP)
+    {
+        return 0;
     }
 
     __u32 tcp_hlen = 0;
@@ -98,13 +104,15 @@ static inline int is_http(struct __sk_buff *skb, __u64 nh_off){
 
     ip_hlen = iph->ihl << 2;
 
-    if(ip_hlen < sizeof(*iph)){
+    if (ip_hlen < sizeof(*iph))
+    {
         return 0;
     }
 
     struct tcphdr *tcph = data + nh_off + sizeof(*iph);
 
-    if(tcph + 1 > data) {
+    if (tcph + 1 > data)
+    {
         return 0;
     }
 
@@ -112,19 +120,19 @@ static inline int is_http(struct __sk_buff *skb, __u64 nh_off){
     poffset = ETH_HLEN + ip_hlen + tcp_hlen;
     plenght = ip_total_length - tcp_hlen - ip_hlen;
 
-    if(plenght >= 7){
+    if (plenght >= 7)
+    {
         unsigned long p[7];
         int i = 0;
-        for ( i = 0; i < 7; i++)
+        for (i = 0; i < 7; i++)
         {
-            p[i] = load_byte(skb, poffset +1);
+            p[i] = load_byte(skb, poffset + 1);
         }
-        if(p[0] == 'H' && p[1] == 'T' && p[2] == 'T' && p[3] == 'P'){
+        if (p[0] == 'H' && p[1] == 'T' && p[2] == 'T' && p[3] == 'P')
+        {
             return 1;
         }
-        
     }
-
 
     return 0;
 }

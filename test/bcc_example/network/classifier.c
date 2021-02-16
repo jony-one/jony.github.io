@@ -42,11 +42,6 @@ struct http_payload
 
 static inline int is_http(struct __sk_buff *skb, __u64 nh_off);
 
-typedef __uint8_t uint8_t;
-typedef __uint16_t unint16_t;
-typedef __uint32_t unint32_t;
-typedef __uint64_t unint64_t;
-
 SEC("classifier")
 static inline int classification(struct __sk_buff *skb)
 {
@@ -56,8 +51,8 @@ static inline int classification(struct __sk_buff *skb)
 
     struct ethhdr *eth = data;
 
-    __u64 h_proto;
-    __u64 nh_off;
+    __u16 h_proto;
+    __u64 nh_off = 0;
     nh_off = sizeof(*eth);
 
     if (data + nh_off > data_end)
@@ -111,7 +106,7 @@ static inline int is_http(struct __sk_buff *skb, __u64 nh_off)
 
     struct tcphdr *tcph = data + nh_off + sizeof(*iph);
 
-    if (tcph + 1 > data)
+    if (tcph + 1 > data_end)
     {
         return 0;
     }
@@ -126,7 +121,7 @@ static inline int is_http(struct __sk_buff *skb, __u64 nh_off)
         int i = 0;
         for (i = 0; i < 7; i++)
         {
-            p[i] = load_byte(skb, poffset + 1);
+            p[i] = load_byte(skb, poffset + i);
         }
         if (p[0] == 'H' && p[1] == 'T' && p[2] == 'T' && p[3] == 'P')
         {

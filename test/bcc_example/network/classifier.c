@@ -91,7 +91,7 @@ static inline int is_http(struct __sk_buff *skb, __u64 nh_off)
         return 0;
     }
 
-    if (iph->protocol == IPPROTO_TCP)
+    if (iph->protocol != IPPROTO_TCP)
     {
         return 0;
     }

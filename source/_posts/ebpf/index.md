@@ -11,7 +11,7 @@ author: Jony
 ---
 
 
-eBPF 的 `**e**` 就是 extended 的缩写。所以 eBPF 就是，BPF 字节码过滤器的增强版。
+eBPF 的 **`e`** 就是 extended 的缩写。所以 eBPF 就是，BPF 字节码过滤器的增强版。
 
 学习建议方式
 - 初学会用 `bcc` 工具

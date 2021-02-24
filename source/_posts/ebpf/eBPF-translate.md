@@ -277,6 +277,143 @@ BPF JIT 编译器为每个函数体发出单独的镜像，随后在最后的 JI
 不过，这种改进也有一些限制。混合使用这两种特性可能会导致内核堆栈溢出。为了了解可能发生的情况，请看下面的图片，说明了bpf2bpf调用和尾部调用的组合：
 ![bpf_tailcall_subprograms.png](/jony.github.io/images/bpf_tailcall_subprograms.png)
 
+尾调用，在实际跳转到目标程序之前，只会释放其当前的栈帧。在上面的例子中我们可以看到，如果从子函数内部发生尾部调用，当程序执行到func2时，函数（func1）的栈帧将存在于栈中。一旦最后一个函数（func3）函数终止，之前所有的栈帧将被释放，控制权将回到BPF程序的调用者手中。
+
+内核引入了额外的逻辑来检测这种功能组合。对整个调用链的堆栈大小有一个限制，每个子程序的最大为256字节（注意，如果验证器检测到bpf2bpf调用，那么主函数也会被当作一个子函数）。总的来说，在这种限制下，bpf程序的调用链最多可以消耗8KB的栈空间。这个限制来自于每个栈帧256字节乘以尾部调用次数限制(32)。如果没有这个限制，BPF程序将在512字节的堆栈大小上运行，产生的尾部调用的最大计数总计为16KB，这将在某些架构上溢出堆栈。
+
+还要提到的一点是，目前仅在x86-64架构上支持此特性组合。
+
+---
+
+# 1.7 JIT
+
+![bpf_jit.png](/jony.github.io/images/bpf_jit.png)
+
+64 位的 x86_64、arm64、ppc64、s390x、mips64、sparc64 和 32 位的 arm 、x86_32 架构都内置了 in-kernel eBPF JIT 编译器，它们的功能都是一样的，可 以用如下方式打开：
+
+```bash
+$ echo 1 > /proc/sys/net/core/bpf_jit_enable
+```
+
+32 位的 mips、ppc 和 sparc 架构目前内置的是一个 cBPF JIT 编译器。这些只有 cBPF JIT 编译器的架构，以及那些甚至完全没有 BPF JIT 编译器的架构，需要通过内核 中的解释器（in-kernel interpreter）执行 eBPF 程序。
+
+要判断哪些平台支持 eBPF JIT，可以在内核源文件中 grep HAVE_EBPF_JIT：
+
+```bash
+$ git grep HAVE_EBPF_JIT arch/
+arch/arm/Kconfig:       select HAVE_EBPF_JIT   if !CPU_ENDIAN_BE32
+arch/arm64/Kconfig:     select HAVE_EBPF_JIT
+arch/powerpc/Kconfig:   select HAVE_EBPF_JIT   if PPC64
+arch/mips/Kconfig:      select HAVE_EBPF_JIT   if (64BIT && !CPU_MICROMIPS)
+arch/s390/Kconfig:      select HAVE_EBPF_JIT   if PACK_STACK && HAVE_MARCH_Z196_FEATURES
+arch/sparc/Kconfig:     select HAVE_EBPF_JIT   if SPARC64
+arch/x86/Kconfig:       select HAVE_EBPF_JIT   if X86_64
+```
+JIT 编译器可以极大加速 BPF 程序的执行，因为与解释器相比，它们可以降低每个指令的 开销（reduce the per instruction cost）。通常，指令可以 1:1 映射到底层架构的原生 指令。另外，这也会减少生成的可执行镜像的大小，因此对 CPU 的指令缓存更友好。特别 地，对于 CISC 指令集（例如 x86），JIT 做了很多特殊优化，目的是为给定的指令产生 可能的最短操作码（emitting the shortest possible opcodes），以降低程序翻译过程所 需的空间。
+
+---
+
+# 1.8 Hardening
+
+为了避免代码被损坏，BPF 会在程序的生命周期内，在内核中将 BPF 解释器解释后的整 个镜像（struct bpf_prog）和 JIT 编译之后的镜像（struct bpf_binary_header）锁定为只读的（read-only）。在这些位置发生的任何数据损坏（例 如由于某些内核 bug 导致的）会触发通用的保护机制，因此会造成内核崩溃（crash）而不是允许损坏静默地发生。
+
+查看哪些平台支持将镜像内存（image memory）设置为只读的，可以通过下面的搜索：
+
+```bash
+$ git grep ARCH_HAS_SET_MEMORY | grep select
+arch/arm/Kconfig:    select ARCH_HAS_SET_MEMORY
+arch/arm64/Kconfig:  select ARCH_HAS_SET_MEMORY
+arch/s390/Kconfig:   select ARCH_HAS_SET_MEMORY
+arch/x86/Kconfig:    select ARCH_HAS_SET_MEMORY
+```
+
+`CONFIG_ARCH_HAS_SET_MEMORY` 选项是不可配置的，因此平台要么内置支持，要么不支持 。那些目前还不支持的架构未来可能也会支持。
+
+对于 `x86_64` JIT 编译器，如果设置了 `CONFIG_RETPOLINE`，尾调用的间接跳转就会用 retpoline 实现。写作本文时，在大部分现代 Linux 发行版上 这个配置都是打开的。
+
+将 `/proc/sys/net/core/bpf_jit_harden` 设置为 `1` 会为非特权用户的 JIT 编译做一些额外的强化工作。这些额外强化会稍微降低程序 的性能，但在有非受信用户在系统上进行操作的情况下，能够有效地减小（潜在的）受攻击 面。但与完全切换到解释器相比，这些性能损失还是比较小的。
+
+当前，启用 hardening 会在 JIT 编译时 **模糊（blind）** BPF 程序中用户提供的所有 32 位和 64 位常量，以防御 JIT spraying（喷射）攻击，这些攻击会将原生操作码（native opcodes）作为立即数（immediate values）注入到内核。这种攻击有效是因为： **立即数** 驻留在可执行内核内存（executable kernel memory）中，因此某些内核 bug 可能会触 发一个跳转动作，如果跳转到立即数的开始位置，就会把它们当做原生指令开始执行。
+
+模糊 JIT 常量通过对真实指令进行随机化实现 。在这种方式中，通过对指令进行重写，将原来基于 **立即数** 的操作转换成基于寄存器的操作。指令重写将加载值的过程分解为两部分：
+
+	1.加载一个模糊后的（blinded）立即数 rnd ^ imm 到寄存器
+	2.将寄存器和 rnd 进行异或操作（xor）
+
+这样原始的 imm 立即数就驻留在寄存器中，可以用于真实的操作了。这里介绍的只是加载操作的模糊过程，实际上所有的通用操作都被模糊了。
+
+下面是强化关闭的情况下，某个程序的 JIT 编译结果：
+
+```c
+$ echo 0 > /proc/sys/net/core/bpf_jit_harden
+
+  ffffffffa034f5e9 + <x>:
+  [...]
+  39:   mov    $0xa8909090,%eax
+  3e:   mov    $0xa8909090,%eax
+  43:   mov    $0xa8ff3148,%eax
+  48:   mov    $0xa89081b4,%eax
+  4d:   mov    $0xa8900bb0,%eax
+  52:   mov    $0xa810e0c1,%eax
+  57:   mov    $0xa8908eb4,%eax
+  5c:   mov    $0xa89020b0,%eax
+  [...]
+ ```
+
+强化打开之后，以上程序被某个非特权用户通过 BPF 加载的结果（这里已经进行了常 量盲化）：
+
+```c
+$ echo 1 > /proc/sys/net/core/bpf_jit_harden
+
+  ffffffffa034f1e5 + <x>:
+  [...]
+  39:   mov    $0xe1192563,%r10d
+  3f:   xor    $0x4989b5f3,%r10d
+  46:   mov    %r10d,%eax
+  49:   mov    $0xb8296d93,%r10d
+  4f:   xor    $0x10b9fd03,%r10d
+  56:   mov    %r10d,%eax
+  59:   mov    $0x8c381146,%r10d
+  5f:   xor    $0x24c7200e,%r10d
+  66:   mov    %r10d,%eax
+  69:   mov    $0xeb2a830e,%r10d
+  6f:   xor    $0x43ba02ba,%r10d
+  76:   mov    %r10d,%eax
+  79:   mov    $0xd9730af,%r10d
+  7f:   xor    $0xa5073b1f,%r10d
+  86:   mov    %r10d,%eax
+  89:   mov    $0x9a45662b,%r10d
+  8f:   xor    $0x325586ea,%r10d
+  96:   mov    %r10d,%eax
+  [...]
+```
+
+两个程序在语义上是一样的，但在第二种方式中，原来的立即数在反汇编之后的程序中不再 可见。
+
+同时，强化还会禁止任何 JIT 内核符合（kallsyms）暴露给特权用户，JIT 镜像地址不再 出现在 /proc/kallsyms 中。
+
+另外，Linux 内核提供了 CONFIG_BPF_JIT_ALWAYS_ON 选项，打开这个开关后 BPF 解释 器将会从内核中完全移除，永远启用 JIT 编译器。此功能部分是为防御 Spectre v2 攻击开发的，如果应用在一个基于虚拟机的环境，客户机内核（guest kernel）将不会复用 内核的 BPF 解释器，因此可以避免某些相关的攻击。如果是基于容器的环境，这个配置是 可选的，如果 JIT 功能打开了，解释器仍然可能会在编译时被去掉，以降低内核的复杂度 。因此，对于主流架构（例如 x86_64 和 arm64）上的 JIT 通常都建议打开这个开关 。
+
+另外，内核提供了一个配置项 /proc/sys/kernel/unprivileged_bpf_disabled 来禁止非 特权用户使用 bpf(2) 系统调用，可以通过 sysctl 命令修改。 比较特殊的一点是，这个配置项特意设计为“一次性开关”（one-time kill switch）， 这意味着一旦将它设为 1，就没有办法再改为 0 了，除非重启内核。一旦设置为 1 之后，只有初始命名空间中有 CAP_SYS_ADMIN 特权的进程才可以调用 bpf(2) 系统调用 。 Cilium 启动后也会将这个配置项设为 1：
+
+```bash
+$ echo 1 > /proc/sys/kernel/unprivileged_bpf_disabled
+```
+
+---
+
+# 1.9 Offloads
+
+![bpf_offload.png](/jony.github.io/images/bpf_offload.png)
+
+BPF 网络程序，尤其是 tc 和 XDP BPF 程序在内核中都有一个 offload 到硬件的接口，这 样就可以直接在网卡上执行 BPF 程序。
+
+当前，Netronome 公司的 nfp 驱动支持通过 JIT 编译器 offload BPF，它会将 BPF 指令 翻译成网卡实现的指令集。另外，它还支持将 BPF maps offload 到网卡，因此 offloaded BPF 程序可以执行 map 查找、更新和删除操作。
+
+
+
+
+
 
 # 文档连接
 [Linux BPF 3.2、BPF and XDP Reference Guide](https://www.dazhuanlan.com/2019/12/10/5dee76b007da0/)

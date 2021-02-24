@@ -214,7 +214,7 @@ BPF 程序都是独立验证的，因此要传递状态，要么使用 per-CPU m
 
 # 1.6 BPF to BPF Calls
 
-![BPF to BPF Calls](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)
+![BPF to BPF Calls](/jony.github.io/images/bpf_call.png)
 除了 BPF 辅助函数和 BPF 尾调用之外，BPF 核心基础设施最近刚加入了一个新特性：BPF 到 BPF 调用（BPF to BPF calls）。在这个特性引入内核之前，典型的 BPF C 程序必须 将所有需要复用的代码进行特殊处理，例如，在头文件中声明为 always_inline。当 LLVM 编译和生成 BPF 对象文件时，所有这些函数将被内联，因此会在生成的对象文件中重复多次，导致代码尺寸膨胀：
 ```c
 #include <linux/bpf.h>
@@ -268,7 +268,7 @@ BPF 到 BPF 调用是一个重要的性能优化，极大减小了生成的 BPF 
 **BPF 辅助函数的调用约定也适用于 BPF 函数间调用，这意味着r1到r5是用来向被调用方传递参数的，`结果在r0中返回`。**
 r1 - r5 是 暂存寄存器(scratch registers)，r6 - r9 像往常一样是保留寄存器。最大嵌套调用深度是 8。调用方可以传递指针（例如，指向调用方的栈帧的指针） 给被调用方，但反过来不行。
 
-当前，BPF 函数间调用和 BPF 尾调用是不兼容的，因为后者需要复用当前的栈设置（ stack setup），而前者会增加一个额外的栈帧，因此不符合尾调用期望的布局。
+~~当前，BPF 函数间调用和 BPF 尾调用是不兼容的，因为后者需要复用当前的栈设置（ stack setup），而前者会增加一个额外的栈帧，因此不符合尾调用期望的布局。~~
 
 BPF JIT 编译器为每个函数体发出单独的镜像，随后在最后的 JIT 处理（final JIT pass）中再修改镜像中函数调用的地址 。事实证明，这种方式需要对 JIT 做最少的改动，因为它们可以将BPF到BPF的调用当作传统的BPF辅助调用。
 
@@ -295,7 +295,7 @@ BPF JIT 编译器为每个函数体发出单独的镜像，随后在最后的 JI
 $ echo 1 > /proc/sys/net/core/bpf_jit_enable
 ```
 
-32 位的 mips、ppc 和 sparc 架构目前内置的是一个 cBPF JIT 编译器。这些只有 cBPF JIT 编译器的架构，以及那些甚至完全没有 BPF JIT 编译器的架构，需要通过内核 中的解释器（in-kernel interpreter）执行 eBPF 程序。
+32 位的 mips、ppc 和 sparc 架构目前内置的是一个 cBPF JIT 编译器。这些只有 cBPF JIT 编译器的架构，以及那些甚至完全没有 BPF JIT 编译器的架构，需要通过内核中的解释器（in-kernel interpreter）执行 eBPF 程序。
 
 要判断哪些平台支持 eBPF JIT，可以在内核源文件中 grep HAVE_EBPF_JIT：
 
@@ -315,7 +315,7 @@ JIT 编译器可以极大加速 BPF 程序的执行，因为与解释器相比�
 
 # 1.8 Hardening
 
-为了避免代码被损坏，BPF 会在程序的生命周期内，在内核中将 BPF 解释器解释后的整 个镜像（struct bpf_prog）和 JIT 编译之后的镜像（struct bpf_binary_header）锁定为只读的（read-only）。在这些位置发生的任何数据损坏（例 如由于某些内核 bug 导致的）会触发通用的保护机制，因此会造成内核崩溃（crash）而不是允许损坏静默地发生。
+为了避免代码被损坏，BPF 会在程序的生命周期内，在内核中将 BPF 解释器解释后的整个镜像（struct bpf_prog）和 JIT 编译之后的镜像（struct bpf_binary_header）锁定为只读的（read-only）。在这些位置发生的任何数据损坏（例 如由于某些内核 bug 导致的）会触发通用的保护机制，因此会造成内核崩溃（crash）而不是允许损坏静默地发生。
 
 查看哪些平台支持将镜像内存（image memory）设置为只读的，可以通过下面的搜索：
 
@@ -360,7 +360,7 @@ $ echo 0 > /proc/sys/net/core/bpf_jit_harden
   [...]
  ```
 
-强化打开之后，以上程序被某个非特权用户通过 BPF 加载的结果（这里已经进行了常 量盲化）：
+强化打开之后，以上程序被某个非特权用户通过 BPF 加载的结果（这里已经进行了常量模糊）：
 
 ```c
 $ echo 1 > /proc/sys/net/core/bpf_jit_harden
@@ -392,7 +392,7 @@ $ echo 1 > /proc/sys/net/core/bpf_jit_harden
 
 同时，强化还会禁止任何 JIT 内核符合（kallsyms）暴露给特权用户，JIT 镜像地址不再 出现在 /proc/kallsyms 中。
 
-另外，Linux 内核提供了 CONFIG_BPF_JIT_ALWAYS_ON 选项，打开这个开关后 BPF 解释 器将会从内核中完全移除，永远启用 JIT 编译器。此功能部分是为防御 Spectre v2 攻击开发的，如果应用在一个基于虚拟机的环境，客户机内核（guest kernel）将不会复用 内核的 BPF 解释器，因此可以避免某些相关的攻击。如果是基于容器的环境，这个配置是 可选的，如果 JIT 功能打开了，解释器仍然可能会在编译时被去掉，以降低内核的复杂度 。因此，对于主流架构（例如 x86_64 和 arm64）上的 JIT 通常都建议打开这个开关 。
+另外，Linux 内核提供了 CONFIG_BPF_JIT_ALWAYS_ON 选项，打开这个开关后 BPF 解释器将会从内核中完全移除，永远启用 JIT 编译器。此功能部分是为防御 Spectre v2 攻击开发的，如果应用在一个基于虚拟机的环境，客户机内核（guest kernel）将不会复用 内核的 BPF 解释器，因此可以避免某些相关的攻击。如果是基于容器的环境，这个配置是可选的，如果 JIT 功能打开了，解释器仍然可能会在编译时被去掉，以降低内核的复杂度 。因此，对于主流架构（例如 x86_64 和 arm64）上的 JIT 通常都建议打开这个开关 。
 
 另外，内核提供了一个配置项 /proc/sys/kernel/unprivileged_bpf_disabled 来禁止非 特权用户使用 bpf(2) 系统调用，可以通过 sysctl 命令修改。 比较特殊的一点是，这个配置项特意设计为“一次性开关”（one-time kill switch）， 这意味着一旦将它设为 1，就没有办法再改为 0 了，除非重启内核。一旦设置为 1 之后，只有初始命名空间中有 CAP_SYS_ADMIN 特权的进程才可以调用 bpf(2) 系统调用 。 Cilium 启动后也会将这个配置项设为 1：
 

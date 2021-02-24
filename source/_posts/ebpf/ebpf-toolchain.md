@@ -105,7 +105,7 @@ xdp-example.o: ELF 64-bit LSB relocatable, *unknown arch 0xf7* version 1 (SYSV),
 
 ---
 
-# 2.2.2 调试信息（DWARF、BTF）
+# 2.2.2 调试信息（[DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)、BTF）
 
 若是要 debug，clang 可以生成下面这样的汇编器输出：
 
@@ -133,9 +133,9 @@ LLVM 从 6.0 开始，还包括了汇编解析器（assembler parser）的支持
 $ llvm-mc -triple bpf -filetype=obj -o xdp-example.o xdp-example.S
 ```
 
-# DWARF 格式和 llvm-objdump
+# [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 格式和 llvm-objdump
 
-另外，较新版本（>= 4.0）的 LLVM 还可以将调试信息以 dwarf 格式存储到对象文件中。 只要在编译时加上 -g：
+另外，较新版本（>= 4.0）的 LLVM 还可以将调试信息以 [dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 格式存储到对象文件中。 只要在编译时加上 -g：
 
 ```bash
 $ clang -O2 -g -Wall -target bpf -c xdp-example.c -o xdp-example.o
@@ -200,48 +200,48 @@ $ clang -O2 -Wall -emit-llvm -S -c xdp-example.c -o -
 
 ## BTF
 
-LLVM 能将调试信息（例如对程序使用的数据的描述）attach 到 BPF 对象文件。默认情况 下使用 DWARF 格式。
+LLVM 能将调试信息（例如对程序使用的数据的描述）attach 到 BPF 对象文件。默认情况 下使用 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 格式。
 
-BPF 使用了一个高度简化的版本，称为 **BTF** (BPF Type Format)。生成的 DWARF 可以 转换成 BTF 格式，然后通过 BPF 对象加载器加载到内核。内核验证 BTF 数据的正确性， 并跟踪 BTF 数据中包含的数据类型。
+BPF 使用了一个高度简化的版本，称为 **BTF** (BPF Type Format)。生成的 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 可以 转换成 BTF 格式，然后通过 BPF 对象加载器加载到内核。内核验证 BTF 数据的正确性， 并跟踪 BTF 数据中包含的数据类型。
 
-这样的话，就可以用键和值对 BPF map 打一些注解（annotation）存储到 BTF 数据中，这 样下次 dump map 时，除了 map 内的数据外还会打印出相关的类型信息。这对内省（ introspection）、调试和格式良好的打印都很有帮助。注意，BTF 是一种通用的调试数据 格式，因此任何从 DWARF 转换成的 BTF 数据都可以被加载（例如，内核 vmlinux DWARF 数 据可以转换成 BTF 然后加载）。后者对于未来 BPF 的跟踪尤其有用。
+这样的话，就可以用键和值对 BPF map 打一些注解（annotation）存储到 BTF 数据中，这 样下次 dump map 时，除了 map 内的数据外还会打印出相关的类型信息。这对内省（ introspection）、调试和格式良好的打印都很有帮助。注意，BTF 是一种通用的调试数据 格式，因此任何从 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 转换成的 BTF 数据都可以被加载（例如，内核 vmlinux [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 数 据可以转换成 BTF 然后加载）。后者对于未来 BPF 的跟踪尤其有用。
 
-将 DWARF 格式的调试信息转换成 BTF 格式需要用到 `elfutils` (>= 0.173) 工具。 如果没有这个工具，那需要在 `llc` 编译时打开 `-mattr=dwarfris` 选项：
+将 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 格式的调试信息转换成 BTF 格式需要用到 `elfutils` (>= 0.173) 工具。 如果没有这个工具，那需要在 `llc` 编译时打开 `-mattr=[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris` 选项：
 
 ```bash
-$ llc -march=bpf -mattr=help |& grep dwarfris
-dwarfris - Disable MCAsmInfo DwarfUsesRelocationsAcrossSections.
+$ llc -march=bpf -mattr=help |& grep [dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris
+[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris - Disable MCAsmInfo [Dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)UsesRelocationsAcrossSections.
 [...]
 ```
 
-使用 -mattr=dwarfris 是因为 dwarfris (dwarf relocation in section) 选项禁 用了 DWARF 和 ELF 的符号表之间的 DWARF cross-section 重定位，因为 libdw 不支持 BPF 重定位。不打开这个选项的话，pahole 这类工具将无法正确地从对象中 dump 结构。
+使用 -mattr=[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris 是因为 [dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris ([dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) relocation in section) 选项禁 用了 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 和 ELF 的符号表之间的 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) cross-section 重定位，因为 libdw 不支持 BPF 重定位。不打开这个选项的话，pahole 这类工具将无法正确地从对象中 dump 结构。
 
-elfutils (>= 0.173) 实现了合适的 BPF 重定位，因此没有打开 -mattr=dwarfris 选 项也能正常工作。它可以从对象文件中的 DWARF 或 BTF 信息 dump 结构。目前 pahole 使用 LLVM 生成的 DWARF 信息，但未来它可能会使用 BTF 信息。
+elfutils (>= 0.173) 实现了合适的 BPF 重定位，因此没有打开 -mattr=[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris 选 项也能正常工作。它可以从对象文件中的 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 或 BTF 信息 dump 结构。目前 pahole 使用 LLVM 生成的 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 信息，但未来它可能会使用 BTF 信息。
 
 
-## pahole
+## pahole (注：pahole 一种代码审计工具)
 
-将 DWARF 转换成 BTF 格式需要使用较新的 pahole 版本（>= 1.12），然后指定 -J 选项。 检查所用的 pahole 版本是否支持 BTF（注意，pahole 会用到 llvm-objcopy，因此 也要检查后者是否已安装）：
+将 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 转换成 BTF 格式需要使用较新的 pahole 版本（>= 1.12），然后指定 -J 选项。 检查所用的 pahole 版本是否支持 BTF（注意，pahole 会用到 llvm-objcopy，因此 也要检查后者是否已安装）：
 
 ```bash
 $ pahole --help | grep BTF
 -J, --btf_encode           Encode as BTF
 ```
 
-生成调试信息还需要前端的支持，在 clang 编译时指定 -g 选项，生成源码级别的调 试信息。注意，不管 llc 是否指定了 dwarfris 选项，-g 都是需要指定的。生成目 标文件的完整示例：
+生成调试信息还需要前端的支持，在 clang 编译时指定 -g 选项，生成源码级别的调 试信息。注意，不管 llc 是否指定了 [dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris 选项，-g 都是需要指定的。生成目 标文件的完整示例：
 
 ```bash
 $ clang -O2 -g -Wall -target bpf -emit-llvm -c xdp-example.c -o xdp-example.bc
-$ llc xdp-example.bc -march=bpf -mattr=dwarfris -filetype=obj -o xdp-example.o
+$ llc xdp-example.bc -march=bpf -mattr=[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris -filetype=obj -o xdp-example.o
 ```
 
-或者，只使用 clang 这一个工具来编译带调试信息的 BPF 程序（同样，如果有合适的 elfutils 版本，dwarfris 选项可以省略）：
+或者，只使用 clang 这一个工具来编译带调试信息的 BPF 程序（同样，如果有合适的 elfutils 版本，[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris 选项可以省略）：
 
 ```bash
-$ clang -target bpf -O2 -g -c -Xclang -target-feature -Xclang +dwarfris -c xdp-example.c -o xdp-example.o
+$ clang -target bpf -O2 -g -c -Xclang -target-feature -Xclang +[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris -c xdp-example.c -o xdp-example.o
 ```
 
-基于 DWARF 信息 dump BPF 程序的数据结构：
+基于 [DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 信息 dump BPF 程序的数据结构：
 
 ```bash
 $ pahole xdp-example.o
@@ -255,10 +255,10 @@ struct xdp_md {
 };
 ```
 
-在对象文件中，DWARF 数据将仍然伴随着新加入的 BTF 数据一起保留。完整的 clang 和 pahole 示例：
+在对象文件中，[DWARF](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction) 数据将仍然伴随着新加入的 BTF 数据一起保留。完整的 clang 和 pahole 示例：
 
 ```bash
-$ clang -target bpf -O2 -Wall -g -c -Xclang -target-feature -Xclang +dwarfris -c xdp-example.c -o xdp-example.o
+$ clang -target bpf -O2 -Wall -g -c -Xclang -target-feature -Xclang +[dwarf](http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction)ris -c xdp-example.c -o xdp-example.o
 $ pahole -J xdp-example.o
 ```
 
@@ -276,6 +276,8 @@ BPF 加载器（例如 iproute2）会检测和加载 BTF section，因此给 BPF
 
 
 ### 2.2.3 BPF 指令集
+
+	根据不同的 CPU 生成不同的汇编指令，用于编译和执行
 
 LLVM 默认用 BPF 基础指令集（base instruction set）来生成代码，以确保这些生成的对
 象文件也能够被稍老的 LTS 内核（例如 4.9+）加载。

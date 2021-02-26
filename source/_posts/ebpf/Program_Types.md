@@ -1,5 +1,5 @@
 ---
-title: Program_Types
+title: 6. Program_Types
 date: 2021-02-24 19:38:33
 categories: 
 	- [eBPF]
@@ -75,18 +75,22 @@ struct xdp_buff {
 - **`data_hard_start`**:XDP 支持 headroom，因此 data_hard_start 指向页面中最大可能的 headroom 开始位置
 	- 即，当对包进行封包（加 header）时，data 会逐渐向 data_hard_start 靠近，这是通过 `bpf_xdp_adjust_head()` 实现的，该辅助函数还支 持解拆包（去 header）。
 - **`rxq`**:指向某些额外的、和每个接收队列相关的元数据：
-	- 	```c
+	- 这些元数据是在缓冲区设置时确定的（并不是在 XDP 运行时）。
+```c
 			struct xdp_rxq_info {
 			    struct net_device *dev;
 			    u32 queue_index;
 			    u32 reg_state;
 			} ____cacheline_aligned;		
-		```
-		这些元数据是在缓冲区设置时确定的（并不是在 XDP 运行时）。
+```
+	
+
+---
 
 
 
-	**`注：`** data_meta 开始时指向与 data 相同的位置，bpf_xdp_adjust_meta() 能够将其朝着 `data_hard_start`移动，这样可以给自定义元数据提供空间，这个空间对内核网络栈是不可见的，但对 tc BPF 程序可见，因为 **tc 需要将它从 XDP 转移到 skb**。 反之亦然，这个辅助函数也可以将 data_meta 移动到离 data_hard_start 比较远的位 置，这样就可以达到删除或缩小这个自定义空间的目的。 **data_meta 还可以单纯用于在尾调用时`传递状态`**，和 tc BPF 程序中用 skb->cb[] 控制块（control block）类似。
+
+**`注：`** data_meta 开始时指向与 data 相同的位置，bpf_xdp_adjust_meta() 能够将其朝着 `data_hard_start`移动，这样可以给自定义元数据提供空间，这个空间对内核网络栈是不可见的，但对 tc BPF 程序可见，因为 **tc 需要将它从 XDP 转移到 skb**。 反之亦然，这个辅助函数也可以将 data_meta 移动到离 data_hard_start 比较远的位 置，这样就可以达到删除或缩小这个自定义空间的目的。 **data_meta 还可以单纯用于在尾调用时`传递状态`**，和 tc BPF 程序中用 skb->cb[] 控制块（control block）类似。
 
 
 这样，我们就可以得到这样的结论，对于 struct xdp_buff 中数据包的指针，有： `data_hard_start <= data_meta <= data < data_end`.

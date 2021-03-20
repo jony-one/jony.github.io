@@ -72,3 +72,7 @@ b' Privileged Cont-5797    [001] ....  5140.968354: 0: Hello, World!'
 [官方文档如何与BPF子系统交互](https://www.kernel.org/doc/html/latest/bpf/bpf_devel_QA.html)
 [bpf-helpers](https://man7.org/linux/man-pages/man7/bpf-helpers.7.html)
 [bpf常见的设计问题](https://www.kernel.org/doc/html/latest/bpf/bpf_design_QA.html#questions-and-answers)
+[BPF与eBPF](http://sniffer.site/2019/11/07/BPF%E4%B8%8EeBPF/)
+[bpf-helpers(7) — Linux manual page](https://man7.org/linux/man-pages/man7/bpf-helpers.7.html#NAME)
+[全面介绍eBPF-概念](https://www.cnblogs.com/charlieroro/p/13403672.html)
+[facebook-bpf-support](https://facebookmicrosites.github.io/bpf/)

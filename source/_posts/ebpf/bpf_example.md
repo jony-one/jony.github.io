@@ -52,7 +52,7 @@ author: Jony
 - **包调度器预处理**（Packet scheduler pre-processing）
 	sch_clsact’s egress hook 被 sch_handle_egress() 调用，在获得内核的 qdisc root lock 之前执行，因此 tc BPF 程序可以在包被发送到一个真实的 full blown qdis （例如 sch_htb）之前，用来执行包分类和 mangling 等所有这些高开销工作。 这种 sch_clsact 和后面的发送阶段的真实 qdisc（例如 sch_htb） 之间的交互， 能够减少发送时的锁竞争，因为 sch_clsact 的 egress hook 是在无锁的上下文中执行的。
 
-同时使用 tc BPF 和 XDP BPF 程序的一个具体例子是 Cilium。Cilium 是一个开源软件， 透明地对（K8S 这样的容器编排平台中的）容器之间的网络连接进行安全保护，工作在 L3/L4/L7。Cilium 的核心基于 BPF，用来实现安全策略、负载均衡和监控。
+同时使用 tc BPF 和 XDP BPF 程序的一个具体例子是 Cilium。Cilium 是一个开源软件， 透明地对（K8S 这样的容器编排平台中的）容器之间的网络连接进行安全保护，工作在 L2/L3/L4/L7。Cilium 的核心基于 BPF，用来实现安全策略、负载均衡和监控。
 
 ---
 

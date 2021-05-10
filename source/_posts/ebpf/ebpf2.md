@@ -41,7 +41,15 @@ filter protocol all pref 49151 bpf chain 0 handle 0x1 tc-example.o:[ingress] dir
 
 
 
+在做 JIT 反编译的时候遇到如下问题：
 
+```base
+sudo bpftool prog dump jited id 20
+Error: No libbfd support
+
+```
+
+此问题未解决，没有怎么查找资料，不影响主流程
 
 
 

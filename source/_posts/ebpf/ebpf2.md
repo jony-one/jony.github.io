@@ -1,6 +1,6 @@
 ---
 title: 7. eBPF 应用案例
-date: 2021-05-10 13:14:19
+date: 2021-05-17 13:14:19
 categories: 
 	- [eBPF]
 tags:
@@ -51,14 +51,47 @@ Error: No libbfd support
 
 此问题未解决，没有怎么查找资料，不影响主流程
 
+使用 clang 单独编译一个文件参考：[运行第一个 bpf 程序](https://blog.csdn.net/Longyu_wlz/article/details/109900096)
 
+了解 libbfd 是啥？
+libbfd 二进制文件描述器，在安装 binutils 工具后选择性安装。利用 libbfd 可以获取 elf 的 section 以及 symbol 信息。
+[bpf库](https://blog.csdn.net/zxremail/article/details/5192400)
 
+运行加载器遇到问题:libbpf: BTF is required, but is missing or corrupted.
+搜索出来的结果都指向了内核bug 行为。
+[内核 patch](https://yhbt.net/lore/all/20210319205909.1748642-1-andrii@kernel.org/T/)
+通过内核 patch 觉得好像是 map 声明出现了问题，内校验器拒绝。所以map 只要从
+```c
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, __u32);
+	__type(value, long);
+	__uint(max_entries, 256);
+} my_map SEC(".maps");
+```
+改为:
 
+```c
+struct bpf_map_def SEC("maps") my_map = {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, u32);
+	__type(value, long);
+	__uint(max_entries, 256);
+};
+```
+就会报另一个错:`libbpf: object file doesn't contain bpf program`
 
-
-
-
-
+思路一时想不起来，一开始看上面的定义发现好像使用来定义一个map的形式，而导致报上面的错。然后翻了一下资料使用 map 的方式。就改成了如下的形式：
+```c
+struct bpf_map_def SEC("maps") my_map =  {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(__u32),
+	.value_size = sizeof(long),
+	.max_entries = 256,
+};
+```
+然后就可以正常运行了， 很 Nice .
+程序就是内核代码下的 `sockex1_kern.c` 的代码，只要修改一下 map 的定义方式就可以，该程序用于统计字节数。
 
 
 

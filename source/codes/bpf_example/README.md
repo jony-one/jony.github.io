@@ -1,0 +1,1 @@
+sudo clang -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes -I../../usr/include/ -I../../tools/include/ -I../../arch/x86/include/ -I../../tools/arch/x86/include/ -I../../include -I../../tools/testing/selftests/bpf/ -I../../tools/lib/ -target bpf -c sockex1_kern.c -o sockex1_kern.o

@@ -78,7 +78,7 @@ type DaemonConfig struct {
 
   // IPv6ClusterAllocCIDRBase is derived from IPv6ClusterAllocCIDR and
   // contains the CIDR without the mask, e.g. "fdfd::1/64" -> "fdfd::"
-  //
+  // IPv6ClusterAllocCIDRBase衍生自IPv6ClusterAllocCIDR，包含不含掩码的CIDR。
   // This variable should never be written to, it is initialized via
   // DaemonConfig.Validate()
   IPv6ClusterAllocCIDRBase string
@@ -86,6 +86,7 @@ type DaemonConfig struct {
   // K8sRequireIPv4PodCIDR requires the k8s node resource to specify the
   // IPv4 PodCIDR. Cilium will block bootstrapping until the information
   // is available.
+  // K8sRequireIPv4PodCIDR要求k8s节点资源指定IPv4 PodCIDR。Cilium将阻止启动，直到信息可用。
   K8sRequireIPv4PodCIDR bool
 
   // K8sRequireIPv6PodCIDR requires the k8s node resource to specify the
@@ -94,13 +95,16 @@ type DaemonConfig struct {
   K8sRequireIPv6PodCIDR bool
 
   // K8sServiceCacheSize is the service cache size for cilium k8s package.
+  // K8sServiceCacheSize是cilium k8s软件包的服务缓存大小。
   K8sServiceCacheSize uint
 
   // K8sForceJSONPatch when set, uses JSON Patch to update CNP and CEP
   // status in kube-apiserver.
+  // K8sForceJSONPatch被设置后，使用JSON补丁来更新kube-apiserver中的CNP和CEP状态。
   K8sForceJSONPatch bool
 
   // MTU is the maximum transmission unit of the underlying network
+  //  MTU是基础网络的最大传输单位
   MTU int
 
   // ClusterName is the name of the cluster
@@ -129,46 +133,57 @@ type DaemonConfig struct {
   CTMapEntriesTimeoutFIN    time.Duration
 
   // EnableMonitor enables the monitor unix domain socket server
+  // EnableMonitor 启用监控unix域套接字服务器。
   EnableMonitor bool
 
   // MonitorAggregationInterval configures the interval between monitor
   // messages when monitor aggregation is enabled.
+  // MonitorAggregationInterval配置了在启用监控聚合时监控信息的间隔。
   MonitorAggregationInterval time.Duration
 
   // MonitorAggregationFlags determines which TCP flags that the monitor
   // aggregation ensures reports are generated for when monitor-aggragation
   // is enabled. Network byte-order.
+  // MonitorAggregationFlags决定了在启用监控聚合时，监控聚合确保产生报告的TCP标志。网络的字节顺序。
   MonitorAggregationFlags uint16
 
   // BPFMapsDynamicSizeRatio is ratio of total system memory to use for
   // dynamic sizing of the CT, NAT, Neighbor and SockRevNAT BPF maps.
+  // BPFMapsDynamicSizeRatio是用于CT、NAT、Neighbor和SockRevNAT BPF Map 动态大小的总系统内存的比率。
   BPFMapsDynamicSizeRatio float64
 
   // NATMapEntriesGlobal is the maximum number of NAT mappings allowed
   // in the BPF NAT table
+  // NATMapEntriesGlobal是BPF NAT表中允许的NAT映射的最大数量
   NATMapEntriesGlobal int
 
   // NeighMapEntriesGlobal is the maximum number of neighbor mappings
   // allowed in the BPF neigh table
+  // NeighMapEntriesGlobal 是BPF NAT表中允许的NAT映射的最大数量
   NeighMapEntriesGlobal int
 
   // PolicyMapEntries is the maximum number of peer identities that an
   // endpoint may allow traffic to exchange traffic with.
+  // PolicyMapEntries是一个端点可能允许流量交换的对等身份的最大数量。
   PolicyMapEntries int
 
   // SockRevNatEntries is the maximum number of sock rev nat mappings
   // allowed in the BPF rev nat table
+  // SockRevNatEntries是BPF rev nat表中允许的sock rev nat映射的最大数量。
   SockRevNatEntries int
 
   // DisableCiliumEndpointCRD disables the use of CiliumEndpoint CRD
+  // DisableCiliumEndpointCRD禁止使用CiliumEndpoint CRD。
   DisableCiliumEndpointCRD bool
 
   // MaxControllerInterval is the maximum value for a controller's
   // RunInterval. Zero means unlimited.
+  // MaxControllerInterval是一个控制器的RunInterval的最大值。零意味着无限制。
   MaxControllerInterval int
 
   // UseSingleClusterRoute specifies whether to use a single cluster route
   // instead of per-node routes.
+  // UseSingleClusterRoute指定是否使用单个集群路由而不是每个节点路由。
   UseSingleClusterRoute bool
 
   // HTTPNormalizePath switches on Envoy HTTP path normalization options, which currently
@@ -176,92 +191,121 @@ type DaemonConfig struct {
   // redirecting for paths that contain escaped slashes. These are necessary to keep path based
   // access control functional, and should not interfere with normal operation. Set this to
   // false only with caution.
+  // HTTPNormalizePath开启了Envoy HTTP路径规范化选项，目前包括RFC 3986路径规范化、Envoy合并斜线选项，
+  // 以及对含有转义斜线的路径进行取消转义和重定向。这些是保持基于路径的访问控制功能所必需的，
+  // 不应该影响正常的操作。只有在谨慎的情况下才将其设置为false。
   HTTPNormalizePath bool
 
   // HTTP403Message is the error message to return when a HTTP 403 is returned
   // by the proxy, if L7 policy is configured.
+  // HTTP403Message是当代理返回HTTP403时，如果配置了L7策略，则返回错误信息。
   HTTP403Message string
 
   // HTTPRequestTimeout is the time in seconds after which Envoy responds with an
   // error code on a request that has not yet completed. This needs to be longer
   // than the HTTPIdleTimeout
+  // HTTPRequestTimeout是指在一个尚未完成的请求中，
+  // Envoy响应错误代码的时间，以秒计。这需要比HTTPIdleTimeout长。
   HTTPRequestTimeout int
 
   // HTTPIdleTimeout is the time in seconds of a HTTP stream having no traffic after
   // which Envoy responds with an error code. This needs to be shorter than the
   // HTTPRequestTimeout
+  // HTTPIdleTimeout是指在HTTP流没有流量的情况下，Envoy回应错误代码的时间（秒）。这需要比HTTPRequestTimeout短。
   HTTPIdleTimeout int
 
   // HTTPMaxGRPCTimeout is the upper limit to which "grpc-timeout" headers in GRPC
   // requests are honored by Envoy. If 0 there is no limit. GRPC requests are not
   // bound by the HTTPRequestTimeout, but ARE affected by the idle timeout!
+  // HTTPMaxGRPCTimeout是GRPC请求中 "grpc-timeout "头信息被Envoy认可的上限。如果是0，
+  // 则没有限制。GRPC请求不受HTTPRequestTimeout的约束，但会受到空闲超时的影响。
   HTTPMaxGRPCTimeout int
 
   // HTTPRetryCount is the upper limit on how many times Envoy retries failed requests.
+  // HTTPRetryCount是Envoy重试失败请求次数的上限。
   HTTPRetryCount int
 
   // HTTPRetryTimeout is the time in seconds before an uncompleted request is retried.
+  // HTTPRetryTimeout是指在未完成的请求被重试之前的时间（秒）。
   HTTPRetryTimeout int
 
   // ProxyConnectTimeout is the time in seconds after which Envoy considers a TCP
   // connection attempt to have timed out.
+  // ProxyConnectTimeout是Envoy认为TCP连接尝试超时的时间，以秒为单位。
   ProxyConnectTimeout int
 
   // ProxyPrometheusPort specifies the port to serve Envoy metrics on.
+  // ProxyPrometheusPort指定了为Envoy度量服务的端口。
   ProxyPrometheusPort int
 
   // EnvoyLogPath specifies where to store the Envoy proxy logs when Envoy
   // runs in the same container as Cilium.
+  // EnvoyLogPath指定了当Envoy与Cilium在同一容器中运行时，Envoy代理日志的存储位置。
   EnvoyLogPath string
 
   // EnableSockOps specifies whether to enable sockops (socket lookup).
+  // EnableSockOps指定是否启用sockops（socket lookup）。
   SockopsEnable bool
 
   // PrependIptablesChains is the name of the option to enable prepending
   // iptables chains instead of appending
+  // PrependIptablesChains是选项的名称，用于启用预置iptables链，而不是附加的链。
   PrependIptablesChains bool
 
   // IPTablesLockTimeout defines the "-w" iptables option when the
   // iptables CLI is directly invoked from the Cilium agent.
+  // IPTablesLockTimeout定义了从Cilium代理直接调用iptables CLI时的"-w "iptables选项。
   IPTablesLockTimeout time.Duration
 
   // IPTablesRandomFully defines the "--random-fully" iptables option when the
   // iptables CLI is directly invoked from the Cilium agent.
+  // IPTablesRandomFully定义了当从Cilium代理直接调用iptables CLI时的"--random-fully" iptables选项。
   IPTablesRandomFully bool
 
   // K8sNamespace is the name of the namespace in which Cilium is
   // deployed in when running in Kubernetes mode
+  // K8sNamespace是指在Kubernetes模式下运行时，Cilium被部署在其中的名称空间。
   K8sNamespace string
 
   // JoinCluster is 'true' if the agent should join a Cilium cluster via kvstore
   // registration
+  // 如果代理应该通过kvstore注册加入Cilium集群，JoinCluster为 "true"。
   JoinCluster bool
 
   // EnableIPv4 is true when IPv4 is enabled
+  // 当EnableIPv4为真，IPv4被启用时。
   EnableIPv4 bool
 
   // EnableIPv6 is true when IPv6 is enabled
+  // EnableIPv6为真 启用了IPv6
   EnableIPv6 bool
 
   // EnableIPv6NDP is true when NDP is enabled for IPv6
+  // 为IPv6启用NDP时，EnableIPv6NDP为True
   EnableIPv6NDP bool
 
   // IPv6MCastDevice is the name of device that joins IPv6's solicitation multicast group
+  // IPv6MCastDevice是加入IPv6的请求多播组的设备的名称
   IPv6MCastDevice string
 
   // EnableL7Proxy is the option to enable L7 proxy
+  // EnableL7Proxy是启用L7代理的选项。
   EnableL7Proxy bool
 
   // EnableIPSec is true when IPSec is enabled
+  // 启用IPSec时，EnableIPSec为true
   EnableIPSec bool
 
   // IPSec key file for stored keys
+  // 存储密钥的IPSec密钥文件
   IPSecKeyFile string
 
   // EnableWireguard enables Wireguard encryption
+  // EnableWireguard启用Wireguard加密
   EnableWireguard bool
 
   // MonitorQueueSize is the size of the monitor event queue
+  // Monitor QueueSize是监视器事件队列的大小
   MonitorQueueSize int
 
   // CLI options
@@ -308,6 +352,7 @@ type DaemonConfig struct {
 
   // Masquerade specifies whether or not to masquerade packets from endpoints
   // leaving the host.
+  // Masquerade 指定是否伪装来自离开主机的端点的数据包。
   EnableIPv4Masquerade   bool
   EnableIPv6Masquerade   bool
   EnableBPFMasquerade    bool
@@ -446,180 +491,233 @@ type DaemonConfig struct {
 
   // ConntrackGCInterval is the connection tracking garbage collection
   // interval
+  // ConntrackGCInterval是连接跟踪的垃圾收集时间间隔。
   ConntrackGCInterval time.Duration
 
   // K8sEventHandover enables use of the kvstore to optimize Kubernetes
   // event handling by listening for k8s events in the operator and
   // mirroring it into the kvstore for reduced overhead in large
   // clusters.
+  // K8sEventHandover能够使用kvstore来优化Kubernetes的事件处理，
+  // 通过监听运营商的k8s事件并将其镜像到kvstore中，以减少大型集群的开销。
   K8sEventHandover bool
 
   // MetricsConfig is the configuration set in metrics
+  // MetricsConfig是在metrics中设置的配置
   MetricsConfig metrics.Configuration
 
   // LoopbackIPv4 is the address to use for service loopback SNAT
+  // LoopbackIPv4是用于服务环回SNAT的地址
   LoopbackIPv4 string
 
   // LocalRouterIPv4 is the link-local IPv4 address used for Cilium's router device
+  // LocalRouterIPv4是用于Cilium路由器设备的链接本地IPv4地址。
   LocalRouterIPv4 string
 
   // LocalRouterIPv6 is the link-local IPv6 address used for Cilium's router device
+  // LocalRouterIPv6是用于Cilium的路由器设备的链接本地IPv6地址。
   LocalRouterIPv6 string
 
   // EndpointInterfaceNamePrefix is the prefix name of the interface
   // names shared by all endpoints
+  // EndpointInterfaceNamePrefix是所有端点共享的接口名称的前缀名称。
   EndpointInterfaceNamePrefix string
 
   // ForceLocalPolicyEvalAtSource forces a policy decision at the source
   // endpoint for all local communication
+  // ForceLocalPolicyEvalAtSource强制所有本地通信在源端点进行策略决定。
   ForceLocalPolicyEvalAtSource bool
 
   // SkipCRDCreation disables creation of the CustomResourceDefinition
   // on daemon startup
+  // 跳过CRDCreation，禁止在守护程序启动时创建CustomResourceDefinition。
   SkipCRDCreation bool
 
   // EnableEndpointRoutes enables use of per endpoint routes
+  // enableendpointrroutes允许使用每个端点路由
   EnableEndpointRoutes bool
 
   // Specifies wheather to annotate the kubernetes nodes or not
+  // 指定是否注解kubernetes节点
   AnnotateK8sNode bool
 
   // RunMonitorAgent indicates whether to run the monitor agent
+  // “RunMonitorAgent”表示是否运行monitor代理
   RunMonitorAgent bool
 
   // ReadCNIConfiguration reads the CNI configuration file and extracts
   // Cilium relevant information. This can be used to pass per node
   // configuration to Cilium.
+  // ReadCNIConfiguration读取CNI配置文件并提取纤毛相关信息。这可用于将每个节点的配置传递给cilium。
   ReadCNIConfiguration string
 
   // WriteCNIConfigurationWhenReady writes the CNI configuration to the
   // specified location once the agent is ready to serve requests. This
   // allows to keep a Kubernetes node NotReady until Cilium is up and
   // running and able to schedule endpoints.
+  // 代理准备好处理请求后，WriteCNIConfigurationWhenReady将CNI配置写入指定位置。
+  // 这允许在cilium启动并运行并能够调度端点之前保持Kubernetes节点NotReady。
   WriteCNIConfigurationWhenReady string
 
   // EnableNodePort enables k8s NodePort service implementation in BPF
+  // EnableNodePort支持在BPF中实现K8S NodePort服务
   EnableNodePort bool
 
   // EnableSVCSourceRangeCheck enables check of loadBalancerSourceRanges
+  // EnableSVCSourceRangeCheck启用loadBalancerSourceRanges检查
   EnableSVCSourceRangeCheck bool
 
   // EnableHealthDatapath enables IPIP health probes data path
+  // EnableHealthDatapath启用IPIP运行状况探测器数据路径
   EnableHealthDatapath bool
 
   // EnableHostPort enables k8s Pod's hostPort mapping through BPF
+  // EnableHostPort通过BPF启用K8S Pod的主机端口映射
   EnableHostPort bool
 
   // EnableHostLegacyRouting enables the old routing path via stack.
+  // EnableHostLegacyRouting通过堆栈启用旧路由路径。
   EnableHostLegacyRouting bool
 
   // NodePortMode indicates in which mode NodePort implementation should run
   // ("snat", "dsr" or "hybrid")
+  // NodePortMode指示NodePort实现应该在哪种模式下运行(“snat”、“dsr”或“Mixed”)
   NodePortMode string
 
   // NodePortAlg indicates which backend selection algorithm is used
   // ("random" or "maglev")
+  // NodePortAlg表示使用哪种后端选择算法(“随机”或“maglev”)
   NodePortAlg string
 
   // LoadBalancerDSRDispatch indicates the method for pushing packets to
   // backends under DSR ("opt" or "ipip")
+  // LoadBalancerDSRDispatch表示DSR下推包到后台的方式(opt或ipip)
   LoadBalancerDSRDispatch string
 
   // LoadBalancerDSRL4Xlate indicates the method for L4 DNAT translation
   // under IPIP dispatch, that is, whether the inner packet will be
   // translated to the frontend or backend port.
+  // LoadBalancerDSRL4Xlate表示IPIP调度下的L4 DNAT转换方式，即内部报文是转换到前端端口还是后端端口。
   LoadBalancerDSRL4Xlate string
 
   // LoadBalancerRSSv4CIDR defines the outer source IPv4 prefix for DSR/IPIP
+  // LoadBalancerRSSv4CIDR定义了DSR/IPIP的外源IPv4前缀
   LoadBalancerRSSv4CIDR string
   LoadBalancerRSSv4     net.IPNet
 
   // LoadBalancerRSSv4CIDR defines the outer source IPv6 prefix for DSR/IPIP
+  // LoadBalancerRSSv4CIDR定义了DSR/IPIP的外部源IPv6前缀
   LoadBalancerRSSv6CIDR string
   LoadBalancerRSSv6     net.IPNet
 
   // LoadBalancerPMTUDiscovery indicates whether LB should reply with ICMP
   // frag needed messages to client (when needed)
+  // LoadBalancerPMTUDiscovery指示LB是否应该用ICMP回复
   LoadBalancerPMTUDiscovery bool
 
   // Maglev backend table size (M) per service. Must be prime number.
+  // 每个服务的 maglev 后端表大小（M）。必须是质数。
   MaglevTableSize int
 
   // MaglevHashSeed contains the cluster-wide seed for the hash(es).
+  // MaglevHashSeed包含 hash 的群集范围种子。
   MaglevHashSeed string
 
   // NodePortAcceleration indicates whether NodePort should be accelerated
   // via XDP ("none", "generic" or "native")
+  // NodePortAcceleration表示NodePort是否应该通过XDP加速(“None”、“Generic”或“Native”)
   NodePortAcceleration string
 
   // NodePortHairpin indicates whether the setup is a one-legged LB
+  // NodePortHairpin指示设置是否为单腿LB
   NodePortHairpin bool
 
   // NodePortBindProtection rejects bind requests to NodePort service ports
+  // NodePortBindProction拒绝对NodePort服务端口的绑定请求
   NodePortBindProtection bool
 
   // EnableAutoProtectNodePortRange enables appending NodePort range to
   // net.ipv4.ip_local_reserved_ports if it overlaps with ephemeral port
   // range (net.ipv4.ip_local_port_range)
+  // EnableAutoProtectNodePortRange 可以在节点端口范围与临时端口范围（net.ipv4.ip_local_reserved_ports）
+  // 重叠时将其追加到 net.ipv4.ip_local_port_range。
   EnableAutoProtectNodePortRange bool
 
   // KubeProxyReplacement controls how to enable kube-proxy replacement
   // features in BPF datapath
+  // KubeProxyReplacement控制如何在BPF数据路径中启用kube-proxy替换功能
   KubeProxyReplacement string
 
   // EnableBandwidthManager enables EDT-based pacing
+  // EnableBandwidthManager 启用基于EDT的节奏。
   EnableBandwidthManager bool
 
   // EnableRecorder enables the datapath pcap recorder
+  // EnableRecorder 启用数据路径 pcap 记录器
   EnableRecorder bool
 
   // KubeProxyReplacementHealthzBindAddr is the KubeProxyReplacement healthz server bind addr
+  // KubeProxyReplacementHealthzBindAddr是KubeProxyReplacement healthz服务器的绑定地址。
   KubeProxyReplacementHealthzBindAddr string
 
   // EnableExternalIPs enables implementation of k8s services with externalIPs in datapath
+  // EnableExternalIPs可以在数据通路中用外部IPs实现k8s服务。
   EnableExternalIPs bool
 
   // EnableHostFirewall enables network policies for the host
+  // EnableHostFirewall 启用主机的网络策略。
   EnableHostFirewall bool
 
   // EnableLocalRedirectPolicy enables redirect policies to redirect traffic within nodes
+  // EnableLocalRedirectPolicy使重定向策略能够在节点内重定向流量
   EnableLocalRedirectPolicy bool
 
   // K8sEnableEndpointSlice enables k8s endpoint slice feature that is used
   // in kubernetes.
+  // K8sEnableEndpointSlice 启用kubernetes中使用的k8s端点分片功能。
   K8sEnableK8sEndpointSlice bool
 
   // NodePortMin is the minimum port address for the NodePort range
+  // NodePortMin是NodePort范围的最小端口地址。
   NodePortMin int
 
   // NodePortMax is the maximum port address for the NodePort range
+  // NodePortMax是NodePort范围的最大端口地址。
   NodePortMax int
 
   // EnableSessionAffinity enables a support for service sessionAffinity
   EnableSessionAffinity bool
 
   // Selection of BPF main clock source (ktime vs jiffies)
+  // BPF主时钟源的选择（ktime与jiffies）。
   ClockSource BPFClockSource
 
   // EnableIdentityMark enables setting the mark field with the identity for
   // local traffic. This may be disabled if chaining modes and Cilium use
   // conflicting marks.
+  // EnableIdentityMark可以为本地流量设置带有身份的标记字段。
+  // 如果连锁模式和Cilium使用冲突的标记，这可能被禁用。
   EnableIdentityMark bool
 
   // KernelHz is the HZ rate the kernel is operating in
+  // KernelHz是内核运行的HZ率。
   KernelHz int
 
   // excludeLocalAddresses excludes certain addresses to be recognized as
   // a local address
+  // excludeLocalAddresses 排除某些地址被识别为本地地址。
   excludeLocalAddresses []*net.IPNet
 
   // IPv4PodSubnets available subnets to be assign IPv4 addresses to pods from
+  // IPv4PodSubnets 可用的子网将被分配IPv4地址给 Pod。
   IPv4PodSubnets []*net.IPNet
 
   // IPv6PodSubnets available subnets to be assign IPv6 addresses to pods from
+  // IPv6PodSubnet可用子网为Pod分配IPv6地址
   IPv6PodSubnets []*net.IPNet
 
   // IPAM is the IPAM method to use
+  // IPAM是要使用的IPAM方法
   IPAM string
 
   // AutoCreateCiliumNodeResource enables automatic creation of a
@@ -627,38 +725,47 @@ type DaemonConfig struct {
   AutoCreateCiliumNodeResource bool
 
   // ipv4NativeRoutingCIDR describes a CIDR in which pod IPs are routable
+  // ipv4NativeRoutingCIDR描述实例IP可路由的CIDR
   ipv4NativeRoutingCIDR *cidr.CIDR
 
   // EgressMasqueradeInterfaces is the selector used to select interfaces
   // subject to egress masquerading
+  // EgressMasalladeInterfaces是用于选择要进行出口伪装的接口的选择器
   EgressMasqueradeInterfaces string
 
   // PolicyTriggerInterval is the amount of time between when policy updates
   // are triggered.
+  // PolicyTriggerInterval是触发策略更新之间的时间量。
   PolicyTriggerInterval time.Duration
 
   // IdentityAllocationMode specifies what mode to use for identity
   // allocation
+  // IdentityAllocationMode指定用于标识分配的模式
   IdentityAllocationMode string
 
   // DisableCNPStatusUpdates disables updating of CNP NodeStatus in the CNP
   // CRD.
+  // DisableCNPStatusUpdate禁用CNP CRD中的CNP NodeStatus更新。
   DisableCNPStatusUpdates bool
 
   // AllowICMPFragNeeded allows ICMP Fragmentation Needed type packets in
   // the network policy for cilium-agent.
+  // AllowICMPFragNeeded允许在cilium-agent的网络策略中对所需类型的数据包进行ICMP分段。
   AllowICMPFragNeeded bool
 
   // EnableWellKnownIdentities enables the use of well-known identities.
   // This is requires if identiy resolution is required to bring up the
   // control plane, e.g. when using the managed etcd feature
+  // EnableWellKnownIdentity允许使用众所周知的身份。如果需要身份分辨率才能启动控制平面，例如在使用托管etcd功能时，则需要执行此操作
   EnableWellKnownIdentities bool
 
   // CertsDirectory is the root directory to be used by cilium to find
   // certificates locally.
+  // CertsDirectory是cilium用来在本地查找证书的根目录。
   CertDirectory string
 
   // EnableRemoteNodeIdentity enables use of the remote-node identity
+  // EnableRemoteNodeIdentity启用远程节点标识
   EnableRemoteNodeIdentity bool
 
   // Azure options
@@ -666,106 +773,136 @@ type DaemonConfig struct {
   // PolicyAuditMode enables non-drop mode for installed policies. In
   // audit mode packets affected by policies will not be dropped.
   // Policy related decisions can be checked via the poicy verdict messages.
+  // PolicyAuditMode为已安装的策略启用非丢弃模式。在审核模式下，不会丢弃受策略影响的数据包。
+  // 与政策相关的决定可以通过政策裁决消息进行检查。
   PolicyAuditMode bool
 
   // EnableHubble specifies whether to enable the hubble server.
+  // EnableHubble指定是否启用哈勃服务器。
   EnableHubble bool
 
   // HubbleSocketPath specifies the UNIX domain socket for Hubble server to listen to.
+  // HubbleSocketPath指定哈勃服务器要侦听的UNIX域套接字。
   HubbleSocketPath string
 
   // HubbleListenAddress specifies address for Hubble to listen to.
+  // HubbleListenAddress指定哈勃要监听的地址。
   HubbleListenAddress string
 
   // HubbleTLSDisabled allows the Hubble server to run on the given listen
   // address without TLS.
+  // HubbleTLSDisabled允许哈勃服务器在没有TLS的情况下在给定的侦听地址上运行。
   HubbleTLSDisabled bool
 
   // HubbleTLSCertFile specifies the path to the public key file for the
   // Hubble server. The file must contain PEM encoded data.
+  // HubbleTLSCertFile指定哈勃服务器的公钥文件的路径。文件必须包含PEM编码数据。
   HubbleTLSCertFile string
 
   // HubbleTLSKeyFile specifies the path to the private key file for the
   // Hubble server. The file must contain PEM encoded data.
+  // HubbleTLSKeyFile指定哈勃服务器的私钥文件的路径。文件必须包含PEM编码数据。
   HubbleTLSKeyFile string
 
   // HubbleTLSClientCAFiles specifies the path to one or more client CA
   // certificates to use for TLS with mutual authentication (mTLS). The files
   // must contain PEM encoded data.
+  // HubbleTLSClientCAFiles指定用于具有相互身份验证(MTLS)的TLS的一个或多个客户端CA证书的路径。文件必须包含PEM编码数据。
   HubbleTLSClientCAFiles []string
 
   // HubbleFlowBufferSize specifies the maximum number of flows in Hubble's buffer.
   // Deprecated: please, use HubbleEventBufferCapacity instead.
+  // HubbleFlowBufferSize指定哈勃缓冲区中的最大流数。
   HubbleFlowBufferSize int
 
   // HubbleEventBufferCapacity specifies the capacity of Hubble events buffer.
+  // HubbleEventBufferCapacity指定哈勃事件缓冲区的容量
   HubbleEventBufferCapacity int
 
   // HubbleEventQueueSize specifies the buffer size of the channel to receive monitor events.
+  // HubbleEventQueueSize指定接收监控事件的通道的缓冲区大小
   HubbleEventQueueSize int
 
   // HubbleMetricsServer specifies the addresses to serve Hubble metrics on.
+  // HubbleMetricsServer指定提供哈勃度量的地址。
   HubbleMetricsServer string
 
   // HubbleMetrics specifies enabled metrics and their configuration options.
+  // HubbleMetrics指定启用的指标及其配置选项。
   HubbleMetrics []string
 
   // HubbleExportFilePath specifies the filepath to write Hubble events to.
   // e.g. "/var/run/cilium/hubble/events.log"
+  // HubbleExportFilePath指定要将哈勃事件写入的文件路径。
   HubbleExportFilePath string
 
   // HubbleExportFileMaxSizeMB specifies the file size in MB at which to rotate
   // the Hubble export file.
+  // HubbleExportFileMaxSizeMB指定旋转哈勃导出文件的文件大小(MB)。
   HubbleExportFileMaxSizeMB int
 
   // HubbleExportFileMaxBacks specifies the number of rotated files to keep.
+  // HubbleExportFileMaxBacks指定了要保留的 rotated 文件的数量。
   HubbleExportFileMaxBackups int
 
   // HubbleExportFileCompress specifies whether rotated files are compressed.
+  // HubbleExportFileCompress指定是否压缩旋转的文件。
   HubbleExportFileCompress bool
 
   // EnableHubbleRecorderAPI specifies if the Hubble Recorder API should be served
+  // EnableHubbleRecorderAPI指定是否应提供哈勃记录器API
   EnableHubbleRecorderAPI bool
 
   // HubbleRecorderStoragePath specifies the directory in which pcap files
   // created via the Hubble Recorder API are stored
+  // HubbleRecorderStoragePath指定存储通过哈勃记录器API创建的pcap文件的目录
   HubbleRecorderStoragePath string
 
   // HubbleRecorderSinkQueueSize is the queue size for each recorder sink
+  // HubbleRecorderSinkQueueSize是每个记录器接收器的队列大小
   HubbleRecorderSinkQueueSize int
 
   // K8sHeartbeatTimeout configures the timeout for apiserver heartbeat
+  // K8sHeartbeatTimeout配置apiserver心跳超时
   K8sHeartbeatTimeout time.Duration
 
   // EndpointStatus enables population of information in the
   // CiliumEndpoint.Status resource
+  // EndpointStatus启用CiliumEndpointStatus资源中的信息填充
   EndpointStatus map[string]struct{}
 
   // DisableIptablesFeederRules specifies which chains will be excluded
   // when installing the feeder rules
+  // DisableIptablesFeederRules指定安装馈送器规则时将排除哪些链
   DisableIptablesFeederRules []string
 
   // EnableIPv4FragmentsTracking enables IPv4 fragments tracking for
   // L4-based lookups. Needs LRU map support.
+  // EnableIPv4FragmentsTracking为基于L4的查找启用IPv4片段跟踪。需要LRU映射支持。
   EnableIPv4FragmentsTracking bool
 
   // FragmentsMapEntries is the maximum number of fragmented datagrams
   // that can simultaneously be tracked in order to retrieve their L4
   // ports for all fragments.
+  // FragmentsMapEntries是可以同时跟踪的碎片数据报的最大数量，以便为所有片段检索其L4端口。
   FragmentsMapEntries int
 
   // sizeofCTElement is the size of an element (key + value) in the CT map.
+  // sizeofCTElement是CT Map 中一个元素（键+值）的大小。
   sizeofCTElement int
 
   // sizeofNATElement is the size of an element (key + value) in the NAT map.
+  // sizeofNATElement是NAT Map  中一个元素（键+值）的大小。
   sizeofNATElement int
 
   // sizeofNeighElement is the size of an element (key + value) in the neigh
   // map.
+  // sizeofNeighElement是neigh Map中一个元素（key + value）的大小。
   sizeofNeighElement int
 
   // sizeofSockRevElement is the size of an element (key + value) in the neigh
   // map.
+  // sizeofSockRevElement是neigh Map 中一个元素（key + value）的大小。
   sizeofSockRevElement int
 
   k8sEnableAPIDiscovery bool
@@ -776,53 +913,69 @@ type DaemonConfig struct {
   // We require to check for Leases capabilities in operator only, which uses Leases for leader
   // election purposes in HA mode.
   // This is only enabled for cilium-operator
+  // k8sEnableLeasesFallbackDiscovery使k8s能够在使用Discovery API发现API组时出现错误时，
+  // 退回到API探测，以检查Kubernetes中的租赁支持。我们只要求检查运营商的租赁能力，
+  // 因为运营商在HA模式下使用租赁来选举领导者。这仅在cilium-operator中启用。
   k8sEnableLeasesFallbackDiscovery bool
 
   // LBMapEntries is the maximum number of entries allowed in BPF lbmap.
+  //  LBMapEntries是BPF lbmap中允许的最大条目数。
   LBMapEntries int
 
   // k8sServiceProxyName is the value of service.kubernetes.io/service-proxy-name label,
   // that identifies the service objects Cilium should handle.
   // If the provided value is an empty string, Cilium will manage service objects when
   // the label is not present. For more details -
+  // k8sServiceProxyName是service.kubernetes.io/service-proxy-name标签的值，它标识了Cilium应该处理的服务对象。 
+  // 如果提供的值是一个空字符串，Cilium将在标签不存在时管理服务对象。更多细节 -
   // https://github.com/kubernetes/enhancements/blob/master/keps/sig-network/0031-20181017-kube-proxy-services-optional.md
   k8sServiceProxyName string
 
   // APIRateLimitName enables configuration of the API rate limits
+  // APIRateLimitName可以配置API速率限制。
   APIRateLimit map[string]string
 
   // CRDWaitTimeout is the timeout in which Cilium will exit if CRDs are not
   // available.
+  // CRDWaitTimeout是指如果CRD不可用，Cilium将退出的时间。
   CRDWaitTimeout time.Duration
 
   // EgressMultiHomeIPRuleCompat instructs Cilium to use a new scheme to
   // store rules and routes under ENI and Azure IPAM modes, if false.
   // Otherwise, it will use the old scheme.
+  // EgressMultiHomeIPRuleCompat指示Cilium使用新的方案来存储ENI和Azure IPAM模式下的规则和路由，如果是假的。否则，它将使用旧方案。
   EgressMultiHomeIPRuleCompat bool
 
   // EnableBPFBypassFIBLookup instructs Cilium to enable the FIB lookup bypass optimization for nodeport reverse NAT handling.
+  // EnableBPFBypassFIBLookup指示Cilium为nodeport反向NAT处理启用FIB查询旁路优化。
   EnableBPFBypassFIBLookup bool
 
   // InstallNoConntrackIptRules instructs Cilium to install Iptables rules to skip netfilter connection tracking on all pod traffic.
+  // InstallNoConntrackIptRules指示Cilium安装Iptables规则以跳过所有Pod流量的netfilter连接跟踪。
   InstallNoConntrackIptRules bool
 
   // EnableCustomCalls enables tail call hooks for user-defined custom
   // eBPF programs, typically used to collect custom per-endpoint
   // metrics.
+  // EnableCustomCalls使用户定义的自定义eBPF程序的尾部调用钩，通常用于收集自定义的每端点指标。
   EnableCustomCalls bool
 
   // BGPAnnounceLBIP announces service IPs of type LoadBalancer via BGP.
+  // BGPAnnounceLBIP通过BGP宣布LoadBalancer类型的服务IP。
   BGPAnnounceLBIP bool
 
   // BGPConfigPath is the file path to the BGP configuration. It is
   // compatible with MetalLB's configuration.
+  // BGPConfigPath是BGP配置的文件路径。它与MetalLB的配置兼容。
   BGPConfigPath string
 
   // ExternalClusterIP enables routing to ClusterIP services from outside
   // the cluster. This mirrors the behaviour of kube-proxy.
+  // ExternalClusterIP支持从群集外部路由到ClusterIP服务。这反映了Kube-Proxy的行为。
   ExternalClusterIP bool
 
   // ARPPingRefreshPeriod is the ARP entries refresher period.
+  // ARPPingRechresh Period是ARP条目刷新周期。
   ARPPingRefreshPeriod time.Duration
 }
 ```

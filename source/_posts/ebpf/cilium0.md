@@ -1,6 +1,6 @@
 ---
-title: Cilium 源码阅读：Agent  启动过程
-date: 2021-05-20 19:44:19
+title: Cilium 源码阅读：Agent 功能查看
+date: 2021-05-21 19:44:19
 categories: 
 	- [eBPF]
 tags:
@@ -92,6 +92,7 @@ type DaemonConfig struct {
   // K8sRequireIPv6PodCIDR requires the k8s node resource to specify the
   // IPv6 PodCIDR. Cilium will block bootstrapping until the information
   // is available.
+  // K8sRequireIPv6PodCIDR要求k8s节点资源指定IPv6 PodCIDR。Cilium将阻止启动，直到信息可用。
   K8sRequireIPv6PodCIDR bool
 
   // K8sServiceCacheSize is the service cache size for cilium k8s package.
@@ -108,23 +109,29 @@ type DaemonConfig struct {
   MTU int
 
   // ClusterName is the name of the cluster
+  // ClusterName是集群的名称
   ClusterName string
 
   // ClusterID is the unique identifier of the cluster
+  // ClusterID是集群的唯一标识符。
   ClusterID int
 
   // ClusterMeshConfig is the path to the clustermesh configuration directory
+  // ClusterMeshConfig是集群网格配置目录的路径。
   ClusterMeshConfig string
 
   // CTMapEntriesGlobalTCP is the maximum number of conntrack entries
   // allowed in each TCP CT table for IPv4/IPv6.
+  // CTMapEntriesGlobalTCP是指IPv4/IPv6的每个TCP CT表中允许的最大串联条目数量。
   CTMapEntriesGlobalTCP int
 
   // CTMapEntriesGlobalAny is the maximum number of conntrack entries
   // allowed in each non-TCP CT table for IPv4/IPv6.
+  // CTMapEntriesGlobalAny是IPv4/IPv6的每个非TCP CT表中允许的最大的conntrack条目数量。
   CTMapEntriesGlobalAny int
 
   // CTMapEntriesTimeout* values configured by the user.
+  // 用户配置的CTMapEntriesTimeout*值。
   CTMapEntriesTimeoutTCP    time.Duration
   CTMapEntriesTimeoutAny    time.Duration
   CTMapEntriesTimeoutSVCTCP time.Duration
@@ -376,89 +383,112 @@ type DaemonConfig struct {
 
   // DNSMaxIPsPerRestoredRule defines the maximum number of IPs to maintain
   // for each FQDN selector in endpoint's restored DNS rules
+  // DNSMaxIPsPerRestoredRule定义了端点恢复的DNS规则中每个FQDN选择器要保持的最大IP数
   DNSMaxIPsPerRestoredRule int
 
   // ToFQDNsProxyPort is the user-configured global, shared, DNS listen port used
   // by the DNS Proxy. Both UDP and TCP are handled on the same port. When it
   // is 0 a random port will be assigned, and can be obtained from
   // DefaultDNSProxy below.
+  // ToFQDNsProxyPort是用户配置的全局、共享的DNS监听端口，由DNS代理使用。
+  // UDP和TCP都在同一个端口上处理。当它为0时，将分配一个随机端口，可以从下面的DefaultDNSProxy获得。
   ToFQDNsProxyPort int
 
   // ToFQDNsMaxIPsPerHost defines the maximum number of IPs to maintain
   // for each FQDN name in an endpoint's FQDN cache
+  // ToFQDNsMaxIPsPerHost定义了在端点的FQDN缓存中为每个FQDN名称维护的最大IP数量。
   ToFQDNsMaxIPsPerHost int
 
   // ToFQDNsMaxIPsPerHost defines the maximum number of IPs to retain for
   // expired DNS lookups with still-active connections
+  // ToFQDNsMaxIPsPerHost定义了为过期的DNS查询保留的最大IP数量，并有仍然有效的连接。
   ToFQDNsMaxDeferredConnectionDeletes int
 
   // ToFQDNsIdleConnectionGracePeriod Time during which idle but
   // previously active connections with expired DNS lookups are
   // still considered alive
+  // ToFQDNsIdleConnectionGracePeriod 在这段时间内，空闲但先前活跃的连接与过期的DNS查询仍被认为是活的。
   ToFQDNsIdleConnectionGracePeriod time.Duration
 
   // FQDNRejectResponse is the dns-proxy response for invalid dns-proxy request
+  // FQDNRejectResponse是对无效dns-proxy请求的dns-proxy响应。
   FQDNRejectResponse string
 
   // FQDNProxyResponseMaxDelay The maximum time the DNS proxy holds an allowed
   // DNS response before sending it along. Responses are sent as soon as the
   // datapath is updated with the new IP information.
+  // FQDNProxyResponseMaxDelay DNS代理在发送允许的DNS响应之前保持的最大时间。一旦数据通路更新了新的IP信息，就立即发送响应。
   FQDNProxyResponseMaxDelay time.Duration
 
   // Path to a file with DNS cache data to preload on startup
+  // 在启动时预加载DNS缓存数据的文件的路径
   ToFQDNsPreCache string
 
   // ToFQDNsEnableDNSCompression allows the DNS proxy to compress responses to
   // endpoints that are larger than 512 Bytes or the EDNS0 option, if present.
+  // ToFQDNsEnableDNSCompression允许DNS代理压缩对大于512字节或EDNS0选项（如果存在）的端点的响应。
   ToFQDNsEnableDNSCompression bool
 
   // HostDevice will be device used by Cilium to connect to the outside world.
+  // HostDevice将是Cilium用来与外部世界连接的设备。
   HostDevice string
 
   // EnableXTSocketFallback allows disabling of kernel's ip_early_demux
   // sysctl option if `xt_socket` kernel module is not available.
+  // EnableXTSocketFallback允许在`xt_socket`内核模块不可用的情况下禁用内核的ip_early_demux sysctl选项。
   EnableXTSocketFallback bool
 
   // EnableBPFTProxy enables implementing proxy redirection via BPF
   // mechanisms rather than iptables rules.
+  // EnableBPFTProxy可以通过BPF机制而不是iptables规则实现代理重定向。
   EnableBPFTProxy bool
 
   // EnableAutoDirectRouting enables installation of direct routes to
   // other nodes when available
+  // EnableAutoDirectRouting可以在可用时安装到其他节点的直接路由。
   EnableAutoDirectRouting bool
 
   // EnableLocalNodeRoute controls installation of the route which points
   // the allocation prefix of the local node.
+  // EnableLocalNodeRoute控制路由的安装，它指向本地节点的分配前缀。
   EnableLocalNodeRoute bool
 
   // EnableHealthChecking enables health checking between nodes and
   // health endpoints
+  // EnableHealthChecking可以在节点和健康端点之间进行健康检查。
   EnableHealthChecking bool
 
   // EnableEndpointHealthChecking enables health checking between virtual
   // health endpoints
+  // EnableEndpointHealthChecking启用虚拟健康端点之间的健康检查
   EnableEndpointHealthChecking bool
 
   // EnableHealthCheckNodePort enables health checking of NodePort by
   // cilium
+  // EnableHealthCheckNodePort可以通过cilium对NodePort进行健康检查。
   EnableHealthCheckNodePort bool
 
   // KVstoreKeepAliveInterval is the interval in which the lease is being
   // renewed. This must be set to a value lesser than the LeaseTTL ideally
   // by a factor of 3.
+  // KVstoreKeepAliveInterval是续租的时间间隔。这必须被设置为一个小于LeaseTTL的值，最好是3的系数。
   KVstoreKeepAliveInterval time.Duration
 
   // KVstoreLeaseTTL is the time-to-live for kvstore lease.
+  // KVstoreLeaseTTL是kvstore租赁的生存时间。
   KVstoreLeaseTTL time.Duration
 
   // KVstorePeriodicSync is the time interval in which periodic
   // synchronization with the kvstore occurs
+  // KVstorePeriodicSync是与kvstore进行定期同步的时间间隔。
   KVstorePeriodicSync time.Duration
 
   // KVstoreConnectivityTimeout is the timeout when performing kvstore operations
+  // KVstoreConnectivityTimeout是执行kvstore操作时的超时。
   KVstoreConnectivityTimeout time.Duration
 
   // IPAllocationTimeout is the timeout when allocating CIDRs
+  // IPAllocationTimeout是分配CIDR时的超时。
   IPAllocationTimeout time.Duration
 
   // IdentityChangeGracePeriod is the grace period that needs to pass
@@ -466,20 +496,27 @@ type DaemonConfig struct {
   // that new identity. During the grace period, the new identity has
   // already been allocated and other nodes in the cluster have a chance
   // to whitelist the new upcoming identity of the endpoint.
+  // 身份变更宽限期（IdentityChangeGracePeriod）是指在一个改变了身份的端点开始使用
+  // 新身份之前需要经过的宽限期。在宽限期内，新的身份已经被分配，集群中的
+  // 其他节点有机会将该端点即将出现的新身份列入白名单。
   IdentityChangeGracePeriod time.Duration
 
   // PolicyQueueSize is the size of the queues for the policy repository.
   // A larger queue means that more events related to policy can be buffered.
+  // PolicyQueueSize是策略库的队列大小。较大的队列意味着可以缓冲更多与政策有关的事件。
   PolicyQueueSize int
 
   // EndpointQueueSize is the size of the EventQueue per-endpoint. A larger
   // queue means that more events can be buffered per-endpoint. This is useful
   // in the case where a cluster might be under high load for endpoint-related
   // events, specifically those which cause many regenerations.
+  // EndpointQueueSize是每个端点的EventQueue的大小。一个更大的队列意味
+  // 着每个端点可以缓冲更多的事件。这在集群可能处于端点相关事件的高负荷情况下很有用，特别是那些导致许多再生的事件。
   EndpointQueueSize int
 
   // EndpointGCInterval is interval to attempt garbage collection of
   // endpoints that are no longer alive and healthy.
+  // EndpointGCInterval是间隔时间，用于尝试对不再存活和健康的端点进行垃圾收集。
   EndpointGCInterval time.Duration
 
   // SelectiveRegeneration, when true, enables the functionality to only
@@ -487,6 +524,9 @@ type DaemonConfig struct {
   // been changed (added, deleted, or updated). If false, then all endpoints
   // are regenerated upon every policy change regardless of the scope of the
   // policy change.
+  // 选择性再生（SelectiveRegeneration），当为真时，使该
+  // 功能只再生被策略规则选中的、已被改变（添加、删除或更新）的端点。如果是假的，
+  // 那么所有的端点都会在每次策略改变时被重新生成，不管策略改变的范围如何。
   SelectiveRegeneration bool
 
   // ConntrackGCInterval is the connection tracking garbage collection

@@ -1,0 +1,36 @@
+---
+title: AF_XDP 散读笔记
+date: 2021-05-10 13:14:19
+categories: 
+	- [eBPF]
+tags:
+  - ebpf
+author: Jony
+---
+
+一直在考虑 XDP 是如何将流量转发到另一个端口的或者说是另一个 docker 实例上的，在 AF_XDP 中得到结局，使用 XDP_REDIRECT 将 action 的 XDP 程序通过 bpf_redirect_map() 函数将接收到的传递到其他启用 XDP 的 netdevs 上。重点就在 转发到其他 启用 XDP 的 netdevs 。AF_XDP socket 是的 XDP 程序可以将帧重定向到用户控件的程序的内存的 buffer 中。
+具体操作是 XDP 会用类型为 BPF_MAP_TYPE_XSKMAP 的 BPF map，并结合 bpf_redirect_map() 将 ingress 帧传递给 socket，用户则会通过 bpf() 系统调用将 socket 存储到这个 map 中。
+
+
+看 BPF Demo 程序时有很多问题待解决，首先的问题是上下文中的入参类型是如何确定的。例如使用 libbpf 的遇到上下文数组。没有使用 libbpf 的情况下各个参数的类型。通过查看 Linux 源码获知是根据 tracepoint 上下文而来。
+
+推断方式：
+SEC(tp_btf/sched_wakeup)
+tp_btf 为老版本的 tracepoint ，然后搜索 linux 源码获取到 tracepoint 文件
+
+include/trace/events/sched.h
+
+进入查看，会看到源码：
+
+/*
+ * Tracepoint called when the task is actually woken; p->state == TASK_RUNNNG.
+ * It it not always called from the waking context.
+ */
+DEFINE_EVENT(sched_wakeup_template, sched_wakeup,
+	     TP_PROTO(struct task_struct *p),
+	     TP_ARGS(p));
+
+只要获得参数以后基本就可以对 tracepoint 进行记录和跟踪操作。
+
+
+还有一个问题没有解决 SEC 里面的内容是如何确定的，如果不借助第三方工具列出的话在 Linux 代码中如何获取

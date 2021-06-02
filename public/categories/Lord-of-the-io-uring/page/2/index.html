@@ -66,7 +66,7 @@
 <div class="mdui-dialog" id="search">
   
     <div class="search-form">
-      <input type="search" class="search-form-input" placeholder="请输入关键词">
+      <input type="search" class="search-form-input" placeholder="Enter the key words">
     </div>
     <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
   
@@ -135,6 +135,10 @@
 
   <div class="mdui-list" mdui-collapse="{accordion: true}">
     
+      <a href="/jony.github.io/tags" class="mdui-list-item mdui-ripple">Tags</a>
+    
+      <a href="/jony.github.io/gallery" class="mdui-list-item mdui-ripple">Gallery</a>
+    
     <div class="mdui-collapse-item">
       <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
         <div class="mdui-list-item-content">友情链接</div>
@@ -142,7 +146,7 @@
       </div>
       <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
         
-          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+          <a href="https://github.com" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
         
         
       </div>
@@ -154,7 +158,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/fbcd2bb270f6/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-8.png" style="max-height: 240px;">
+        <img src="/images/random/material-10.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">liburing 实现 cp 命令</div>
@@ -168,7 +172,6 @@
         liburing 实现 cp 命令
 在前面的小节中，我们看到了如何使用liburing提供的高级接口来构建相当于Unix cat的...
       
-      <br/>
       <a href="/jony.github.io/fbcd2bb270f6/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -184,7 +187,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/33f4e488c2f3/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
+        <img src="/images/random/material-7.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">liburing 实现 cat 命令</div>
@@ -198,7 +201,6 @@
         cat 使用 liburing 实现
 我们看到，用io_uring构建一个读取文件的程序这么简单的东西，可能并不那么简单。事实证明...
       
-      <br/>
       <a href="/jony.github.io/33f4e488c2f3/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -214,7 +216,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/3d70b9e6d77f/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-3.png" style="max-height: 240px;">
+        <img src="/images/random/material-1.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">io_uring 底层接口</div>
@@ -228,7 +230,6 @@
         io_uring 的底层接口
 正如在前一个文章中所建议的那样，您不太可能在正式的程序中使用 io_uring
       
-      <br/>
       <a href="/jony.github.io/3d70b9e6d77f/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -244,7 +245,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/98b4e846459c/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-2.png" style="max-height: 240px;">
+        <img src="/images/random/material-6.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">io_uring 是什么?</div>
@@ -257,7 +258,6 @@
       
         io_uring 是一个新的 Linux 异步 I/O API，由 Facebook 的 Jens Axboe 创建。它的目的是提供一个不受当前
       
-      <br/>
       <a href="/jony.github.io/98b4e846459c/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -273,7 +273,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/493f5652fc23/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
+        <img src="/images/random/material-7.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">Linux 下异步编程</div>
@@ -286,7 +286,6 @@
       
         我们生活在这样一个时代，我们使用的大多数应用程序都在云上运行。每当用户连接到基于云的应用程序时，通常编写在某种web框架之上的大多数业务逻辑都会运行...
       
-      <br/>
       <a href="/jony.github.io/493f5652fc23/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -302,7 +301,7 @@
   <article class="mdui-card mdui-m-b-5 mdui-hoverable">
     <a href="/jony.github.io/88c499707f04/">
       <header class="mdui-card-media mdui-ripple">
-        <img src="/jony.github.io//images/random/material-11.png" style="max-height: 240px;">
+        <img src="/images/random/material-2.png" style="max-height: 240px;">
         <div class="mdui-card-media-covered">
           <div class="mdui-card-primary">
             <div class="mdui-card-primary-title">欢迎来到 Lord of the io_uring</div>
@@ -315,7 +314,6 @@
       
         io_uring是在Linux下进行异步I/O编程的一种强大的新方法。io_uring 消除了上一代I/O子系统的各种限制...
       
-      <br/>
       <a href="/jony.github.io/88c499707f04/">阅读更多 >></a>
     </div>
     <footer class="mdui-card-actions">
@@ -349,7 +347,7 @@
     
   </div>
   <div class="mdui-p-y-1 mdui-text-center">
-    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Copyright &copy; 2019 - 2021 Jony.Z.Y<br>
     Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
     
   </div>

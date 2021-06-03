@@ -1,5 +1,5 @@
 ---
-title: Cilium 源码阅读：Agent  启动过程
+title: Cilium 解析阅读：如何制定和执行 L3 策略
 date: 2021-05-20 19:44:19
 categories: 
 	- [eBPF]
@@ -11,66 +11,28 @@ author: Jony
 
 
 
-# Cilium 源码阅读：Agent  启动过程
+# Cilium 源码阅读：如何制定和执行 L3 策略
 
 原文：[http://arthurchiao.art/blog/cilium-code-agent-start/#0-overview](http://arthurchiao.art/blog/cilium-code-agent-start/#0-overview)
 
 
+**我认为理解 eBPF 代码还比较简单，多看看内核代码就行了，但配置和编写 eBPF 就要难多了。**
 
+Cilium 提供了 CNI 和 kube-proxy replacement 功能，相比 iptable 性能要好很多当前代码复杂度也上升了。
+
+本文做了一个官方 Demo  顺便解析一下代码以把整个过程透明化：
+
+Demo 参考：[https://docs.cilium.io/en/v1.8/gettingstarted/docker/](https://docs.cilium.io/en/v1.8/gettingstarted/docker/)
+
+看下 `cilium policy import l3_l4_policy.json` 得处理流程：
+
+
+命令会触发 CMD 得 import 方法最终会生成新的请求发送到 cilium_agent，调用链如下：
 ```bash
-runDaemon                                                                    //    daemon/cmd/daemon_main.go
-  |-enableIPForwarding                                                       
-  |-k8s.Init                                                                 // -> pkg/k8s/init.go
-  |-NewDaemon                                                                // -> daemon/cmd/daemon.go
-  |  |-d := Daemon{}
-  |  |-d.initMaps                                                            //    daemon/cmd/datapath.go
-  |  |-d.svc.RestoreServices                                                 // -> pkg/service/service.go
-  |  |  |-restoreBackendsLocked
-  |  |  |-restoreServicesLocked
-  |  |-d.k8sWatcher.RunK8sServiceHandler                                     //    pkg/k8s/watchers/watcher.go
-  |  |  |-k8sServiceHandler                                                  //    pkg/k8s/watchers/watcher.go
-  |  |    |-eventHandler                                                     //    pkg/k8s/watchers/watcher.go
-  |  |-k8s.RegisterCRDs
-  |  |-d.bootstrapIPAM                                                       // -> daemon/cmd/ipam.go
-  |  |-restoredEndpoints := d.restoreOldEndpoints                            // -> daemon/cmd/state.go
-  |  |  |-ioutil.ReadDir                                                   
-  |  |  |-endpoint.FilterEPDir // filter over endpoint directories
-  |  |  |-for ep := range possibleEPs
-  |  |      validateEndpoint(ep)
-  |  |        |-allocateIPsLocked
-  |  |-k8s.Client().AnnotateNode                                           
-  |  |-d.bootstrapClusterMesh                                              
-  |  |-d.init                                                                //    daemon/cmd/daemon.go
-  |  |  |-os.MkdirAll(globalsDir)
-  |  |  |-d.createNodeConfigHeaderfile
-  |  |  |-d.Datapath().Loader().Reinitialize
-  |  |-monitoragent.NewAgent
-  |  |-d.syncEndpointsAndHostIPs                                             // -> daemon/cmd/datapath.go
-  |  |  |-insert special identities to lxcmap, ipcache
-  |  |-UpdateController("sync-endpoints-and-host-ips")
-  |  |-loader.RestoreTemplates                                               // -> pkg/datapath/loader/cache.go
-  |  |  |-os.RemoveAll()
-  |  |-ipcache.InitIPIdentityWatcher                                         // -> pkg/ipcache/kvstore.go
-  |     |-watcher = NewIPIdentityWatcher
-  |     |-watcher.Watch
-  |        |-IPIdentityCache.Upsert/Delete
-  |-gc.Enable                                                                // -> pkg/maps/ctmap/gc/gc.go
-  |   |-for { runGC() } // conntrack & nat gc
-  |-initKVStore
-  |  |-UpdateController("kvstore-locks-gc", RunLocksGC)
-  |  |-kvstore.Setup
-  |-initRestore(restoredEndpoints)
-  |  |-regenerateRestoredEndpoints(restoredEndpoints)                        // daemon/cmd/state.go
-  |  |-UpdateController("sync-lb-maps-with-k8s-services")
-  |-initHealth
-  |-startStatusCollector
-  |  |-status.NewCollector(probes)                                           // pkg/status
-  |-startAgentHealthHTTPService
-  |-SendNotification
-  |  |-monitorAgent.SendEvent(AgentNotifyStart)
-  |-srv.Serve()  // start Cilium agent API server
-  |-k8s.Client().MarkNodeReady()
-  |-launchHubble()
+cmd.loadPolicy   # cilium/cmd/policy_import.go
+client.PolicyPut 
+    c.Policy.PutPolicy
+        a.transport.Submit
 ```
 
-
+经过上面的调用链就会将请求通过 unix 协议发送出去。

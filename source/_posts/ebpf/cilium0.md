@@ -14,6 +14,11 @@ author: Jony
 # Cilium 源码阅读： 功能解析
 
 
+Cilium 是开源软件，用于透明的提供和保护使用 Kubernetes、Docker 等 Linux 容器管理平台部署的应用程序之间的网络和 API 连接。
+
+Cilium 基于 BPF 内核技术，再 Linux 内部动态插入强大的**安全性**、**可见性**和**网络控制逻辑**。处理提供传统的玩了国际安全性之外，BPF 的灵活性还可以再 API 和进程级别上实现安全性，以保护哦让那个和或容器内的同步新，由于 BPF 再 Linux 内核中运行一次可以应用和更新 Cilium 安全策略，而无须对应用程序代码或者容器配置进行任何**更改**。
+
+
 从 Config 数据结构看支持哪些功能
 
 
@@ -316,69 +321,121 @@ type DaemonConfig struct {
   MonitorQueueSize int
 
   // CLI options
-
+  // Path to BPF filesystem
   BPFRoot                       string
+  //Path to Cgroup2 filesystem
   CGroupRoot                    string
+  //Enable debugging of the BPF compilation process. 
   BPFCompileDebug               string
+  // Extra CFLAGS for BPF compilation
   CompilerFlags                 []string
+  // Configuration file (default "$HOME/ciliumd.yaml")
   ConfigFile                    string
+  // Configuration directory that contains a file for each option
   ConfigDir                     string
+  // Enable debugging mode
   Debug                         bool
+  // List of enabled verbose debug groups
   DebugVerbose                  []string
+  // Disable connection tracking
   DisableConntrack              bool
+  // Use per endpoint routes instead of routing via cilium_host
   EnableHostReachableServices   bool
+  // 
   EnableHostServicesTCP         bool
   EnableHostServicesUDP         bool
   EnableHostServicesPeer        bool
+  // Enable policy enforcement
   EnablePolicy                  string
+  // Enable tracing while determining policy (debugging)
   EnableTracing                 bool
+  // Path to a separate Envoy log file, if any
   EnvoyLog                      string
+  // Do not perform Envoy binary version check on startup
   DisableEnvoyVersionCheck      bool
+  // Key-value for the fixed identity mapping which allows to use reserved label for fixed identities
   FixedIdentityMapping          map[string]string
   FixedIdentityMappingValidator func(val string) (string, error) `json:"-"`
+  // Per-node IPv4 endpoint prefix, e.g. 10.16.0.0/16
   IPv4Range                     string
+  // Per-node IPv6 endpoint prefix, e.g. fd02:1:1::/96
   IPv6Range                     string
+  // Kubernetes IPv4 services CIDR if not inside cluster prefix
   IPv4ServiceRange              string
+  // Kubernetes IPv6 services CIDR if not inside cluster prefix
   IPv6ServiceRange              string
+  // "Per-node IPv4 endpoint prefix, e.g. 10.16.0.0/16
   K8sAPIServer                  string
+  // Absolute path of the kubernetes kubeconfig file
   K8sKubeConfigPath             string
   K8sClientBurst                int
   K8sClientQPSLimit             float64
+  // Timeout for synchronizing k8s resources before exiting
   K8sSyncTimeout                time.Duration
+  // Timeout for listing allocator state before exiting
   AllocatorListTimeout          time.Duration
+  // K8s endpoint watcher will watch for these k8s endpoints
   K8sWatcherEndpointSelector    string
+  // Key-value store type
   KVStore                       string
+  // Key-value store options
   KVStoreOpt                    map[string]string
+  // Valid label prefixes file path
   LabelPrefixFile               string
+  // List of label prefixes used to determine identity of an endpoint
   Labels                        []string
+  // Logging endpoints to use for example syslog
   LogDriver                     []string
+  // Log driver options for cilium-agent,configmap example for syslog driver: {"syslog.level":"info","syslog.facility":"local5","syslog.tag":"cilium-agent"}
   LogOpt                        map[string]string
+  // Enable periodic logging of system load
   Logstash                      bool
+  // Enable periodic logging of system load
   LogSystemLoadConfig           bool
+  // IPv6 prefix to map IPv4 addresses to
   NAT46Range                    string
 
   // Masquerade specifies whether or not to masquerade packets from endpoints
   // leaving the host.
   // Masquerade 指定是否伪装来自离开主机的端点的数据包。
   EnableIPv4Masquerade   bool
+  // Masquerade IPv6 traffic from endpoints leaving the host
   EnableIPv6Masquerade   bool
+  // Masquerade packets from endpoints leaving the host with BPF instead of iptables
   EnableBPFMasquerade    bool
+  // Enable BPF clock source probing for more efficient tick retrieval
   EnableBPFClockProbe    bool
+  // Enable BPF ip-masq-agent
   EnableIPMasqAgent      bool
+  // Enable egress gateway
   EnableEgressGateway    bool
+  // ip-masq-agent configuration file path
   IPMasqAgentConfigPath  string
+  // Install base iptables rules for cilium to mainly interact with kube-proxy (and masquerading)
   InstallIptRules        bool
+  // Level of monitor aggregation for traces from the datapath
   MonitorAggregation     string
+  // Enable BPF map pre-allocation
   PreAllocateMaps        bool
+  // Invalid IPv6 node address
   IPv6NodeAddr           string
+  // Invalid IPv4 node address
   IPv4NodeAddr           string
+  // Regular expression matching compatible Istio sidecar istio-proxy container image names
   SidecarIstioProxyImage string
+  // Sets daemon's socket path to listen for connections
   SocketPath             string
+  // Length of payload to capture when tracing
   TracePayloadlen        int
+  // Print version information
   Version                string
+  // Enable serving the pprof debugging API
   PProf                  bool
+  // Port that the pprof listens on
   PProfPort              int
+  // IP:Port on which to serve prometheus metrics (pass ":Port" to bind on all interfaces, "" is off)
   PrometheusServeAddr    string
+  // The minimum time, in seconds, to use DNS data for toFQDNs policies. (default %d )
   ToFQDNsMinTTL          int
 
   // DNSMaxIPsPerRestoredRule defines the maximum number of IPs to maintain
@@ -1020,3 +1077,58 @@ type DaemonConfig struct {
 }
 ```
 
+cilium-agent start argument:
+
+```bash
+"auto-direct-node-routes": "false",
+"bpf-lb-map-max": "65536",
+"bpf-map-dynamic-size-ratio": "0.0025",
+"bpf-policy-map-max": "16384",
+"cilium-endpoint-gc-interval": "5m0s",
+"cluster-id": "",
+"cluster-name": "default",
+"cluster-pool-ipv4-cidr": "10.0.0.0/8",
+"cluster-pool-ipv4-mask-size": "24",
+"custom-cni-conf": "false",
+"debug": "false",
+"disable-cnp-status-updates": "true",
+"enable-auto-protect-node-port-range": "true",
+"enable-bandwidth-manager": "false",
+"enable-bpf-clock-probe": "true",
+"enable-bpf-masquerade": "true",
+"enable-endpoint-health-checking": "true",
+"enable-health-check-nodeport": "true",
+"enable-health-checking": "true",
+"enable-hubble": "true",
+"enable-ipv4": "true",
+"enable-ipv6": "false",
+"enable-l7-proxy": "true",
+"enable-local-redirect-policy": "false",
+"enable-policy": "default",
+"enable-remote-node-identity": "true",
+"enable-session-affinity": "true",
+"enable-well-known-identities": "false",
+"enable-xt-socket-fallback": "true",
+"hubble-disable-tls": "false",
+"hubble-listen-address": ":4244",
+"hubble-socket-path": "/var/run/cilium/hubble.sock",
+"hubble-tls-cert-file": "/var/lib/cilium/tls/hubble/server.crt",
+"hubble-tls-client-ca-files": "/var/lib/cilium/tls/hubble/client-ca.crt",
+"hubble-tls-key-file": "/var/lib/cilium/tls/hubble/server.key",
+"identity-allocation-mode": "crd",
+"install-iptables-rules": "true",
+"ipam": "cluster-pool",
+"kube-proxy-replacement": "probe",
+"kube-proxy-replacement-healthz-bind-address": "",
+"masquerade": "true",
+"monitor-aggregation": "medium",
+"monitor-aggregation-flags": "all",
+"monitor-aggregation-interval": "5s",
+"node-port-bind-protection": "true",
+"operator-api-serve-addr": "127.0.0.1:9234",
+"preallocate-bpf-maps": "false",
+"sidecar-istio-proxy-image": "cilium/istio_proxy",
+"tunnel": "vxlan",
+"wait-bpf-mount": "false"
+
+```

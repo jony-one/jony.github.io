@@ -1,5 +1,5 @@
 ---
-title: Cilium 源码阅读：Agent  启动过程
+title: Cilium 源码漫游：Agent  启动过程
 date: 2021-05-20 19:44:19
 categories: 
 	- [eBPF]
@@ -16,6 +16,7 @@ author: Jony
 原文：[http://arthurchiao.art/blog/cilium-code-agent-start/#0-overview](http://arthurchiao.art/blog/cilium-code-agent-start/#0-overview)
 
 
+见：daemon/cmd/daemon_main.go#runDaemon
 
 ```bash
 runDaemon                                                                    //    daemon/cmd/daemon_main.go
@@ -74,3 +75,36 @@ runDaemon                                                                    // 
 ```
 
 
+# 概览
+
+查看默认启动命令：
+
+```bash
+/usr/bin/cilium-agent --debug --pprof --enable-hubble --hubble-listen-address :4244 --enable-k8s-event-handover --k8s-require-ipv4-pod-cidr --auto-direct-node-routes --ipv4-range 10.11.0.0/16 --kvstore-opt consul.address=192.168.33.11:8500 --kvstore consul -t vxlan
+```
+
+运行命令后就会运行。运行之后就会触发，删了一些不必要的代码：
+
+```golang
+func runDaemon() {
+    enableIPForwarding()                                  // turn on ip forwarding in kernel
+    k8s.Init(Config)                                      // init k8s utils
+                                                          
+    d, restoredEndpoints := NewDaemon()                   
+    gc.Enable(restoredEndpoints.restored)                 // Starting connection tracking garbage collector
+    d.initKVStore()                                       // init cilium-etcd
+                                                          
+    restoreComplete := d.initRestore(restoredEndpoints)
+
+    d.initHealth()                                        // init cilium health-checking if enabled
+    d.startStatusCollector()                              
+    d.startAgentHealthHTTPService()                       
+                                                          
+    d.SendNotification(monitorAPI.AgentNotifyStart, repr)
+
+    go func() { errs <- srv.Serve() }()                   // start Cilium HTTP API server
+
+    k8s.Client().MarkNodeReady(nodeTypes.GetName())
+    d.launchHubble()
+}
+```

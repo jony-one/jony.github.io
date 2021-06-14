@@ -41,7 +41,7 @@ func rotatedDigits(n int) int {
 		}
 		s = strings.ReplaceAll(s,"0","")
 		s = strings.ReplaceAll(s,"1","")
-		s = strings.ReplaceAll(s,"8","")
+		s = strings.ReplaceAll(s,	"8","")
 		if len(s) == 0 {
 			continue
 		}

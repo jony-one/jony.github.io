@@ -1,5 +1,5 @@
 ---
-title: Cilium 源码阅读：cilium-docker
+title: Cilium 源码阅读：如何制定和执行 L3 策略 续续
 date: 2021-06-14 19:44:19
 categories: 
 	- [eBPF]
@@ -11,38 +11,58 @@ author: Jony
 
 
 
-# Cilium 源码阅读： 功能解析
-
-查看了一下 cilium-docker 的功能主要以 IPAM 为主
-sudo nohup /home/vagrant/go/bin/dlv attach 651 --headless=true --listen=:9526  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5113 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5049 --headless=true --listen=:9528  --api-version=2 --accept-multiclient --log &
-
-docker network create --driver cilium --ipam-driver cilium cilium-net
-docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd
-docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
+# Cilium 源码阅读：如何制定和执行 L3 策略
 
 
-http:///var/run/cilium/cilium.sock//v1/ipam?family=ipv4&owner=docker-ipam
-Accept:application/json
-Content-Type:application/json
-Expiration:false
+## macVlan
+
+所有的资料显示 ipvlan 都会与 macvlan 放在一起比较研究。也就是表示 macvlan 出生早于 ipvlan ，那么 ipvlan 应该弥补了很多 macvlan 的不足和不好解决的问题。
+
+macvlan 就是允许在一个物理网卡上配置多个 mac 地址，这个有点反标准，一般一个网卡只有一个 mac 地址
+而且是全球唯一的。但是现在虚拟机技术越来越牛逼，所以一些原始的标准只能作为部分标准择优而选。多个 macvlan 就是多个 interface 所以前面那么多说的接口都是网卡的意思。每个 interface 都有可以自己的 IP。
+
+macvlan 最大的有点就是性能好，效率高，但是这里思考到一个问题就是 BGP？多网口肯定需要 BGP 的支持。
+
+macvlan 可以在一个 host 的网络接口上虚拟出多个网络接口也可以有自己的 MAC 和 IP 地址
+
+macvlan 模式
+
+- 可以在一个实体网卡上设定多个 mac 地址
+- 设定的 mac 地址称为子接口（`sub interface`）；实体网卡称为父接口（`parent interface`）
+- `parent interface` 可以是一个物理接口 （eth0）、802.1q、eth0.10、bonding 接口
+- 所有 interface 都可以设定 IP
+- `sub interface` 无法直接与 `parent interface` 通信
+- vm 或者 container 要与 host 通信，还要额外建一个 sub interface 给 host
+- sub interface 通常以 mac0@eth0 的形式来命名
+
+MACVlan 工作模式
+- Bridge： 属于同一个 parent interface 的 macvlan 接口挂到同一个 bridge 上，可以互通（二层工作）
+- VPEA（Virtual Ethernet Port Aggregator）：所有接口的流量都需要到外部交换器走一圈才能到达其他接口（交换机）
+- Private：接口只接收发送给自己 MAC 地址的报文 （交换机）
+- Passthru：父接口和响应的 MacVlan 接口捆绑在一起，这种模式每个父接口只能和一个 MacVlan 接口捆绑。并且 MacVlan 虚拟网卡接口基础 父接口的 Mac 地址。
 
 
-curl -X POST --unix-socket /var/run/cilium/cilium.sock \
-  'http:///v1/ipam?family=ipv4&owner=docker-ipam' \
-  -H 'Accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -H 'Expiration: false' 
+## ipvlan 
+
+ipvlan 也是从一个主机接口虚拟出多个虚拟网络接口。一个重要的区别就是所有的虚拟接口都有相同的 macv 地址，而拥有不同的 ip 地址。
+
+ipvlan 工作模式
+
+L2：与 macvlan 的 bridge 模式工作原理很类似，父接口作为交换机来转发子接口的数据。同一个网路的子接口可以通过父接口来转
+发数据。（理解：桥接模式需要中转站，这个站点就是宿主机本身，有网络划分。如果流量要出去也只能走中转站）
+L3：Ipvlan 类似路由器功能，在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，及时各个容器或者
+虚拟机不在同一个网络，也可以互相 ping 通对方。因为 ipvlan 可以在中间做转发。（理解：同上但是无网络划分）
+
+同理：需要了解 IProuter2 ，读懂了应该会系统的了解整个虚拟网络。
+
+所以 cilium_net、cilium_host、cilium_vlan
 
 
 
-curl -XPOST --unix-socket /var/run/cilium/cilium.sock/  http://localhost/v1/ipam?family=ipv4&owner=docker-ipam
 
-HTTP/1.1 201 Created
-Content-Type: application/json
-Date: Sun, 13 Jun 2021 08:41:33 GMT
-Content-Length: 259
 
-{"address":{"ipv4":"10.11.215.121"},"host-addressing":{"ipv4":{"alloc-range":"10.11.0.0/16","enabled":true,"ip":"10.11.168.111"},"ipv6":{"alloc-range":"f00d::a0f:0:0:0/96","enabled":true,"ip":"f00d::a0f:0:0:56a9"}},"ipv4":{"cidrs":null,"ip":"10.11.215.121"}}
-el":"None","NAT46":"Disabled","PolicyAuditMode":"Disabled","PolicyVerdictNotification":"Enabled","TraceNotification":"Enabled"}},"status":{"controllers":[{"configuration":{"error-retry":true,"error-retry-base":"2s"},"name":"endpoint-922-regeneration-recovery","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"0001-01-01T00:00:00.000Z"},"uuid":"00b7c499-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"5m0s"},"name":"resolve-identity-922","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:17.807Z","success-count":1},"uuid":"00b9ae9e-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"5m0s"},"name":"sync-IPv4-identity-mapping (922)","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:17.806Z","success-count":1},"uuid":"00b939f9-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"1m0s"},"name":"sync-policymap-922","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:18.387Z","success-count":1},"uuid":"011253cb-cc22-11eb-8a22-080027e4875d"}],"external-identifiers":{"docker-endpoint-id":"74515cf5064ba31007dabcf724e6fa3d2914241f01da8ba888227ab3a0283304","docker-network-id":"f1e88970d55e632a6f130bcacb4a9e328a3489d88c231b191fcff94e053d30ed","pod-name":"/"},"health":{"bpf":"OK","connected":true,"overallHealth":"OK","policy":"OK"},"identity":{"id":5,"labels":["reserved:init"],"labelsSHA256":"200a5c3596eeb6d318ecd6d810acfd1fd5408e498501fd8a7ed212d3adab62e3"},"labels":{"realized":{},"security-relevant":["reserved:init"]},"log":[{"code":"OK","message":"Successfully regenerated endpoint program (Reason: updated security labels)","state":"ready","timestamp":"2021-06-13T08:33:18Z"}],"networking":{"addressing":[{"ipv4":"10.11.125.251"}],"host-mac":"3a:e1:e1:cb:18:23","interface-index":19,"interface-name":"lxcc502f5f6cac7","mac":"92:59:a2:63:f0:9c"},"policy":{"proxy-statistics":[],"realized":{"allowed-egress-identities":[],"allowed-ingress-identities":[],"build":1,"cidr-policy":{"egress":[],"ingress":[]},"id":5,"l4":{"egress":[],"ingress":[]},"policy-enabled":"both","policy-revision":1},"spec":{"allowed-egress-identities":[],"allowed-ingress-identities":[],"build":1,"cidr-policy":{"egress":[],"ingress":[]},"id":5,"l4":{"egress":[],"ingress":[]},"policy-enabled":"both","policy-revision":1}},"realized":{"label-configuration":{},"options":{"Conntrack":"Enabled","ConntrackAccounting":"Enabled","ConntrackLocal":"Disabled","Debug":"Disabled","DebugLB":"Disabled","DebugPolicy":"Disabled","DropNotification":"Enabled","MonitorAggregationLevel":"None","NAT46":"Disabled","PolicyAuditMode":"Disabled","PolicyVerdictNotification":"Enabled","TraceNotification":"Enabled"}},"state":"ready"}}
+
+
+
+
+

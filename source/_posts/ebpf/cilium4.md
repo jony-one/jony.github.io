@@ -247,20 +247,44 @@ __section("sk_msg")
 ```bash
 ip addr
 
-8: veth9613a25@if7: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default
-    link/ether 1a:f0:78:0d:bc:5f brd ff:ff:ff:ff:ff:ff link-netnsid 0
-10: vethb8a8bca@if9: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default
-    link/ether 12:03:76:f8:3b:a9 brd ff:ff:ff:ff:ff:ff link-netnsid 1
-11: cilium_net@cilium_host: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
-    link/ether 4e:5a:8c:58:f4:2e brd ff:ff:ff:ff:ff:ff
-12: cilium_host@cilium_net: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
-    link/ether 72:97:c5:3e:c8:f1 brd ff:ff:ff:ff:ff:ff
-13: cilium_vxlan: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-    link/ether 36:c1:8d:86:b1:3b brd ff:ff:ff:ff:ff:ff
-15: lxc_health@if14: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default
-    link/ether 5e:82:28:6a:db:97 brd ff:ff:ff:ff:ff:ff link-netns cilium-health
-21: lxcfd196ec6df51@if20: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default
-    link/ether 2e:07:92:04:03:d5 brd ff:ff:ff:ff:ff:ff link-netnsid 3
+4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:62:0a:04:14 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:62ff:fe0a:414/64 scope link 
+       valid_lft forever preferred_lft forever
+6: veth6bf49a1@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 82:e0:f5:1a:8d:ca brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::80e0:f5ff:fe1a:8dca/64 scope link 
+       valid_lft forever preferred_lft forever
+8: veth20f4c3f@if7: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether ee:48:81:af:5e:7b brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::ec48:81ff:feaf:5e7b/64 scope link 
+       valid_lft forever preferred_lft forever
+9: cilium_net@cilium_host: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 02:36:d7:87:c5:9b brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::36:d7ff:fe87:c59b/64 scope link 
+       valid_lft forever preferred_lft forever
+10: cilium_host@cilium_net: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 3e:ac:d1:3d:fe:30 brd ff:ff:ff:ff:ff:ff
+    inet 10.11.53.10/32 scope link cilium_host
+       valid_lft forever preferred_lft forever
+    inet6 fd01::b/128 scope global 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::3cac:d1ff:fe3d:fe30/64 scope link 
+       valid_lft forever preferred_lft forever
+11: cilium_vxlan: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 16:96:5a:55:b7:43 brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::1496:5aff:fe55:b743/64 scope link 
+       valid_lft forever preferred_lft forever
+13: lxc_health@if12: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether fe:17:fd:39:83:39 brd ff:ff:ff:ff:ff:ff link-netns cilium-health
+    inet6 fe80::fc17:fdff:fe39:8339/64 scope link 
+       valid_lft forever preferred_lft forever
+19: lxc807633bfedea@if18: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 42:23:dc:4d:79:b1 brd ff:ff:ff:ff:ff:ff link-netnsid 3
+    inet6 fe80::4023:dcff:fe4d:79b1/64 scope link 
+       valid_lft forever preferred_lft forever
 ```
 
 `lxcfd196ec6df51@if20` 应该就是当前 demo1 的网卡了。通过  `ip link |grep xdp` 发现并没有 `XDP` 运行。可能是运行在虚拟机里的原因。

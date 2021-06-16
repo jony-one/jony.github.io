@@ -55,12 +55,44 @@ L3：Ipvlan 类似路由器功能，在各个虚拟网络和主机网络之间�
 
 同理：需要了解 IProuter2 ，读懂了应该会系统的了解整个虚拟网络。
 
-所以 cilium_net、cilium_host、cilium_vlan
+所以 cilium_net、cilium_host、cilium_vxlan 
 
 
+```bash
+$ export V=lxc807633bfedea &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_lxc.o:[from-container] direct-action 
+========
 
+$ export V=lxc_health &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_lxc.o:[from-container] direct-action 
+========
 
+$ export V=cilium_vxlan &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_overlay.o:[from-overlay] direct-action 
+========
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_overlay.o:[to-overlay] direct-action 
 
+$ export V=cilium_host &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_host.o:[to-host] direct-action 
+========
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_host.o:[from-host] direct-action 
+
+$ export V=cilium_net &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+filter protocol all pref 1 bpf 
+filter protocol all pref 1 bpf handle 0x1 bpf_host_cilium_net.o:[to-host] direct-action 
+========
+
+$ export V=docker0 &&  tc filter show dev $V ingress && echo "========" &&tc filter show dev $V egress 
+========
+```
+
+所以这三者应该是中转的组件，逐个剖析每个函数的作用：几千行代码。
 
 
 

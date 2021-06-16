@@ -1,6 +1,6 @@
 ---
 title: Cilium 解析阅读：如何制定和执行 L3 策略
-date: 2021-05-20 19:44:19
+date: 2021-06-14 19:44:19
 categories: 
 	- [eBPF]
 tags:
@@ -181,6 +181,105 @@ func (e *Endpoint) RegenerateIfAlive(regenMetadata *regeneration.ExternalRegener
 }
 ```
 
+对于首次创建的实例，会触发 CreateMap 这里创建的 Map 就是 BPFMap，然后调用 ObjPin 将 Map pin 住。创建成功将 Map 清空。中间流程太多，那么我就查找和查看最核心的点写入 Map 的是什么内容？结构是什么样子？后续如何操作运行的？
 
+/sys/fs/bpf/tc/globals/cilium_policy_01945
+CT_MAP_TCP4:/sys/fs/bpf/tc/globals/cilium_ct4_global
+CT_MAP_ANY4:/sys/fs/bpf/tc/globals/cilium_ct_any4_global
+CT_MAP_TCP6:/sys/fs/bpf/tc/globals/cilium_ct6_global
+CT_MAP_ANY6:/sys/fs/bpf/tc/globals/cilium_ct_any6_global
+
+具体就需要观察有多少种 map，可以通过 `pkg/bpf/map_linux.go` 来向上推导有哪些 Map，也可以搜索关键字。因为存入 Map 中的都是指针所以找到指针指向就可以了。
+
+代码一直 debug 反推到 daemon 的初始化函数 init()  在初始化中对 PolicyMap 进行了初始化创建：
+
+```golang
+
+func (d *Daemon) init() error {
+	globalsDir := option.Config.GetGlobalsDir() // /sys/fs/bpf/tc/globals/
+
+	d.createNodeConfigHeaderfile()
+	eppolicymap.CreateEPPolicyMap()
+	d.Datapath().Loader().Reinitialize(d.ctx, d, d.mtuConfig.GetDeviceMTU(), d.Datapath(), d.l7Proxy, d.ipam)
+}
+func CreateEPPolicyMap() {
+	CreateWithName(MapName)
+}
+func CreateWithName(mapName string) error {
+	buildMap.Do(func() {
+		mapType := bpf.MapTypeHash
+		fd, err := bpf.CreateMap(mapType,
+			uint32(unsafe.Sizeof(policymap.PolicyKey{})),
+			uint32(unsafe.Sizeof(policymap.PolicyEntry{})),
+			uint32(policymap.MaxEntries),
+			bpf.GetPreAllocateMapFlags(mapType),
+			0, innerMapName)
+
+		if err != nil {
+			log.WithError(err).Fatal("unable to create EP to policy map")
+			return
+		}
+
+		EpPolicyMap = bpf.NewMap(mapName,
+			bpf.MapTypeHashOfMaps,
+			&EndpointKey{},
+			int(unsafe.Sizeof(EndpointKey{})),
+			&EPPolicyValue{},
+			int(unsafe.Sizeof(EPPolicyValue{})),
+			MaxEntries,
+			0,
+			0,
+			bpf.ConvertKeyValue,
+		).WithCache()
+		EpPolicyMap.InnerID = uint32(fd)
+	})
+
+	_, err := EpPolicyMap.OpenOrCreate()
+	return err
+}
+type PolicyEntry struct {
+	ProxyPort uint16 `align:"proxy_port"` // In network byte-order
+	Pad0      uint16 `align:"pad0"`
+	Pad1      uint16 `align:"pad1"`
+	Pad2      uint16 `align:"pad2"`
+	Packets   uint64 `align:"packets"`
+	Bytes     uint64 `align:"bytes"`
+}
+type PolicyKey struct {
+	Identity         uint32 `align:"sec_label"`
+	DestPort         uint16 `align:"dport"` // In network byte-order
+	Nexthdr          uint8  `align:"protocol"`
+	TrafficDirection uint8  `align:"egress"`
+}
+type EndpointKey struct {
+	// represents both IPv6 and IPv4 (in the lowest four bytes)
+	IP     types.IPv6 `align:"$union0"`
+	Family uint8      `align:"family"`
+	Key    uint8      `align:"key"`
+	Pad2   uint16     `align:"pad5"`
+}
+type EPPolicyValue struct{ Fd uint32 }
+```
+
+测试：当导入 policy 文件的时候并没有引发更新 PolicyMap ，测试了三次都没有触发。不由得猜想是否需要创建 Docker 实例的时候才进行更新，直接将创建的 IP 更新到 Map。
+执行命令：
+docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 2000 http://app1
+
+0 = /sys/fs/bpf/tc/globals/cilium_lxc -> 
+1 = /sys/fs/bpf/tc/globals/cilium_ipcache -> 
+2 = /sys/fs/bpf/tc/globals/cilium_lb6_backends -> 
+3 = /sys/fs/bpf/tc/globals/cilium_metrics -> 
+4 = /sys/fs/bpf/tc/globals/cilium_tunnel_map -> 
+5 = /sys/fs/bpf/tc/globals/cilium_lb6_services_v2 -> 
+6 = /sys/fs/bpf/tc/globals/cilium_lb6_reverse_nat -> 
+7 = /sys/fs/bpf/tc/globals/cilium_lb4_services_v2 -> 
+8 = /sys/fs/bpf/tc/globals/cilium_lb4_reverse_nat -> 
+9 = /sys/fs/bpf/tc/globals/cilium_policy_03221 -> 
+10 = /sys/fs/bpf/tc/globals/cilium_lb6_source_range -> 
+11 = /sys/fs/bpf/tc/globals/cilium_policy_00501 -> 
+12 = /sys/fs/bpf/tc/globals/cilium_policy_03812 -> 
+13 = /sys/fs/bpf/tc/globals/cilium_lb4_backends -> 
+14 = /sys/fs/bpf/tc/globals/cilium_lb4_source_range -> 
+15 = /sys/fs/bpf/tc/globals/cilium_policy_00906 -> 
 
 

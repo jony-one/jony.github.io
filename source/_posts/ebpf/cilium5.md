@@ -94,7 +94,22 @@ $ export V=docker0 &&  tc filter show dev $V ingress && echo "========" &&tc fil
 
 所以这三者应该是中转的组件，逐个剖析每个函数的作用：几千行代码。
 
+Map 共有
 
+| 名称   | 作用域  |
+| Connection Tracking  | node or endpoint  |
+| NAT | node |
+| Neighbor Table   | node
+| Endpoints | node |
+| IP cache   | node |
+| Load Balancer  | node |
+| Policy | endpoint |
+| Proxy Map  | node |
+| Tunnel | node |
+| IPv4 Fragmentation   | node |
+| Session Affinity   | node |
+| IP Masq  | node |
+| Service Source Ranges  | node |
 
 
 

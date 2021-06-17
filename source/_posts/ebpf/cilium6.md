@@ -1,5 +1,5 @@
 ---
-title: Cilium 源码阅读：cilium-docker
+title: Cilium 功能阅读：Code 概览
 date: 2021-06-14 19:44:19
 categories: 
 	- [eBPF]
@@ -13,36 +13,130 @@ author: Jony
 
 # Cilium 源码阅读： 功能解析
 
-查看了一下 cilium-docker 的功能主要以 IPAM 为主
-sudo nohup /home/vagrant/go/bin/dlv attach 651 --headless=true --listen=:9526  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5113 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5049 --headless=true --listen=:9528  --api-version=2 --accept-multiclient --log &
+## High-level
 
-docker network create --driver cilium --ipam-driver cilium cilium-net
-docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd
-docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
+**api**
+  Cilium & Hubble API 定义
+**bpf**
+  BPF数据路径代码
+**bpftool**
+  命令行收集代理和系统信息，用于bug报告
+**cilium**
+  Cilium CLI客户端
+**contrib, tools**
+  用于开发的其他工具和资源
+**daemon**
+  在每个节点上运行的cilium代理
+**examples**
+  各种示例资源和清单。通常需要修改才能使用。
+**hubble-relay**
+  哈勃中继服务器
+**install**
+  Helm 所有组件的部署清单  
+**pkg**
+  所有组件之间共享的通用Go包
+**operator**
+  负责集中任务的操作员，这些任务不需要在每个节点上执行。
+**plugins**
+  与Kubernetes和Docker集成的插件
+**test**
+  端到端集成测试在端到端测试框架中运行。  
 
 
-http:///var/run/cilium/cilium.sock//v1/ipam?family=ipv4&owner=docker-ipam
-Accept:application/json
-Content-Type:application/json
-Expiration:false
+## Cilium
+
+**api/v1/openapi.yaml**
+  Cilium的API规范。用于代码生成。
+**api/v1/models/**
+  从代表所有API资源的openapi.yaml生成的Go代码
+**bpf**
+  BPF数据路径代码  
+**cilium**
+  Cilium CLI客户端
+**cilium-health**
+  Cilium集群连接的CLI客户端
+**daemon**
+  cilium-agent的具体代码    
+**plugins/cilium-cni**
+  与Kubernetes集成的CNI插件
+**plugins/cilium-docker**
+  Docker集成插件
+
+# 重要的通用包  
+
+**pkg/allocator**
+  安全身份分配
+**pkg/bpf**
+  抽象层，与BPF运行时进行交互  
+**pkg/client**
+  访问Cilium API的Go客户端
+**pkg/clustermesh**
+  多集群实现包括控制平面和全局服务
+**pkg/controller**
+  任何需要重试或基于间隔的调用的后台操作的基本控制器实现。
+**pkg/datapath**
+  用于数据通路交互的抽象层
+**pkg/default**
+  所有默认值
+**pkg/elf**
+  用于BPF加载器的ELF抽象库
+**pkg/endpoint**
+  对Cilium endpoint 的抽象，代表所有的工作负载。
+**pkg/endpointmanager**
+  管理所有 Endpoint
+**pkg/envoy**
+  Envoy 集成代理
+**pkg/fqdn**
+  FQDN 代理 和 FQDN 策略实现
+**pkg/health**
+  网络连接健康检查
+**pkg/identity**
+    代表工作负载的安全身份
+**pkg/ipam**
+  IP 地址管理
+**pkg/ipcache**
+  全局缓存将IP映射到端点和安全标识
+**pkg/k8s**
+  与Kubernetes的所有交互
+**pkg/kafka**
+  Kafka协议代理和策略实现
+**pkg/kvstore**
+  带etcd和consul后端的键值存储抽象层
+**pkg/labels**
+  基本元数据类型，用于描述工作负载标识规范和策略匹配的所有标签/元数据要求。
+**pkg/loadbalancer**
+  用于负载平衡功能的控制平面
+**pkg/maps**
+  BPF map 表述
+**pkg/metrics**
+  Prometheus 指标实现
+**pkg/monitor**
+  BPF数据路径监视抽象
+**pkg/node**
+  网络节点的表示
+**pkg/option**
+  所有可用配置选项
+**pkg/policy**
+  策略实施规范与实施
+**pkg/proxy**
+  第7层代理抽象
+**pkg/service**
+  负载均衡 service 的表示
+**pkg/trigger**
+  实现触发器功能以实现事件驱动功能
 
 
-curl -X POST --unix-socket /var/run/cilium/cilium.sock \
-  'http:///v1/ipam?family=ipv4&owner=docker-ipam' \
-  -H 'Accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -H 'Expiration: false' 
 
 
 
-curl -XPOST --unix-socket /var/run/cilium/cilium.sock/  http://localhost/v1/ipam?family=ipv4&owner=docker-ipam
 
-HTTP/1.1 201 Created
-Content-Type: application/json
-Date: Sun, 13 Jun 2021 08:41:33 GMT
-Content-Length: 259
 
-{"address":{"ipv4":"10.11.215.121"},"host-addressing":{"ipv4":{"alloc-range":"10.11.0.0/16","enabled":true,"ip":"10.11.168.111"},"ipv6":{"alloc-range":"f00d::a0f:0:0:0/96","enabled":true,"ip":"f00d::a0f:0:0:56a9"}},"ipv4":{"cidrs":null,"ip":"10.11.215.121"}}
-el":"None","NAT46":"Disabled","PolicyAuditMode":"Disabled","PolicyVerdictNotification":"Enabled","TraceNotification":"Enabled"}},"status":{"controllers":[{"configuration":{"error-retry":true,"error-retry-base":"2s"},"name":"endpoint-922-regeneration-recovery","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"0001-01-01T00:00:00.000Z"},"uuid":"00b7c499-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"5m0s"},"name":"resolve-identity-922","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:17.807Z","success-count":1},"uuid":"00b9ae9e-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"5m0s"},"name":"sync-IPv4-identity-mapping (922)","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:17.806Z","success-count":1},"uuid":"00b939f9-cc22-11eb-8a22-080027e4875d"},{"configuration":{"error-retry":true,"interval":"1m0s"},"name":"sync-policymap-922","status":{"last-failure-timestamp":"0001-01-01T00:00:00.000Z","last-success-timestamp":"2021-06-13T08:33:18.387Z","success-count":1},"uuid":"011253cb-cc22-11eb-8a22-080027e4875d"}],"external-identifiers":{"docker-endpoint-id":"74515cf5064ba31007dabcf724e6fa3d2914241f01da8ba888227ab3a0283304","docker-network-id":"f1e88970d55e632a6f130bcacb4a9e328a3489d88c231b191fcff94e053d30ed","pod-name":"/"},"health":{"bpf":"OK","connected":true,"overallHealth":"OK","policy":"OK"},"identity":{"id":5,"labels":["reserved:init"],"labelsSHA256":"200a5c3596eeb6d318ecd6d810acfd1fd5408e498501fd8a7ed212d3adab62e3"},"labels":{"realized":{},"security-relevant":["reserved:init"]},"log":[{"code":"OK","message":"Successfully regenerated endpoint program (Reason: updated security labels)","state":"ready","timestamp":"2021-06-13T08:33:18Z"}],"networking":{"addressing":[{"ipv4":"10.11.125.251"}],"host-mac":"3a:e1:e1:cb:18:23","interface-index":19,"interface-name":"lxcc502f5f6cac7","mac":"92:59:a2:63:f0:9c"},"policy":{"proxy-statistics":[],"realized":{"allowed-egress-identities":[],"allowed-ingress-identities":[],"build":1,"cidr-policy":{"egress":[],"ingress":[]},"id":5,"l4":{"egress":[],"ingress":[]},"policy-enabled":"both","policy-revision":1},"spec":{"allowed-egress-identities":[],"allowed-ingress-identities":[],"build":1,"cidr-policy":{"egress":[],"ingress":[]},"id":5,"l4":{"egress":[],"ingress":[]},"policy-enabled":"both","policy-revision":1}},"realized":{"label-configuration":{},"options":{"Conntrack":"Enabled","ConntrackAccounting":"Enabled","ConntrackLocal":"Disabled","Debug":"Disabled","DebugLB":"Disabled","DebugPolicy":"Disabled","DropNotification":"Enabled","MonitorAggregationLevel":"None","NAT46":"Disabled","PolicyAuditMode":"Disabled","PolicyVerdictNotification":"Enabled","TraceNotification":"Enabled"}},"state":"ready"}}
+
+  
+
+
+
+
+
+
+

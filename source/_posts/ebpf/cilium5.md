@@ -96,23 +96,151 @@ $ export V=docker0 &&  tc filter show dev $V ingress && echo "========" &&tc fil
 
 Map 共有
 
-| 名称   | 作用域  |
-| Connection Tracking  | node or endpoint  |
-| NAT | node |
-| Neighbor Table   | node
-| Endpoints | node |
-| IP cache   | node |
-| Load Balancer  | node |
-| Policy | endpoint |
-| Proxy Map  | node |
-| Tunnel | node |
-| IPv4 Fragmentation   | node |
-| Session Affinity   | node |
-| IP Masq  | node |
-| Service Source Ranges  | node |
+| 名称                  |         作用域       |       作用                              |
+| Connection Tracking   | node or endpoint    |       连接跟踪表                         | 
+| NAT                   |  node               |        NAT映射表                        |
+| Neighbor Table        | node                |           |
+| Endpoints             | node                |        本地端点Map                      |
+| IP cache              | node                |     管理IP/CIDR<->身份的IPCache映射      |
+| Load Balancer         | node                |          负载平衡配置                    |
+| Policy                | endpoint            |       管理与策略相关的BPF映射             |
+| Proxy Map             | node                |           代理配置                       |
+| Tunnel                | node                |        隧道端点Map                       |
+| IPv4 Fragmentation    | node                |           |
+| Session Affinity      | node                |           |
+| IP Masq               | node                |      ip-masq-agent CIDRs               |
+| Service Source Ranges | node                |           |
 
 继续了解代码：bpf 如何执行策略的
 
 
+调用 regenerateBPF 方法的入口在这，所以需要向上反推，什么情况下才会触发 `RegenerateIfAlive` 方法，看方法名的意思是如果存在存活节点才执行，
+思考：如果没有存活节点会不会触发？如果删除节点会不会触发？epsToRegen 内容是什么怎么的来的？
+
+```golang
+  epsToRegen.ForEachGo(&enqueueWaitGroup, func(ep policy.Endpoint) {
+    if ep != nil {
+      switch e := ep.(type) {
+      case *endpoint.Endpoint:
+        // Do not wait for the returned channel as we want this to be
+        // ASync 不要等待返回的通道，因为我们希望这是异步的
+        e.RegenerateIfAlive(regenMetadata)
+      default:
+        log.Errorf("BUG: endpoint not type of *endpoint.Endpoint, received '%s' instead", e)
+      }
+    }
+  })
+```
+
+debug 从 policyAdd 跳转至 PolicyReactionEvent 发现 endpointsToRegen 在 policyAdd 的时候为空，跳转之后就不为空了，说明 RegenerateIfAlive 不是从 
+policyAdd 跳转过来的。那么就将目标转到 putPolicy 上。
+
+入参如下：
+```json
+[
+  {
+    "endpointSelector": {
+      "matchLabels": {
+        "any:id": "app1"
+      }
+    },
+    "ingress": [
+      {
+        "fromEndpoints": [
+          {
+            "matchLabels": {
+              "any:id": "app2"
+            }
+          }
+        ],
+        "toPorts": [
+          {
+            "ports": [
+              {
+                "port": "80",
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "labels": [
+      {
+        "key": "name",
+        "value": "l3-rule",
+        "source": ""
+      }
+    ]
+  }
+]
+```
+
+~~规则整合完整后就会触发 UpdateRulesEndpointsCaches 就需要更新 Endpoint 筛选出来，放到 Set 中，然后从原有的 Set 中删除。目的就是将需要~~
+~~更新的 Endpoint 和 不需要更新的 Endpoint 区分开来，但是每次更新都需要修改 Revision。 ~~
+~~~~
+~~匹配完成后会触发 PolicyReactionEvent#reactToRuleUpdates 方法。将需要修改的 Endpoint 重新生成。进入 RegenerateIfAlive  方法：~~
+~~~~
+~~1. 判断当前 Endpoint 是否处于 Alive~~
+~~2. 切换上下文至 EndpointRegenerationEvent 执行~~
+~~3. 开始处理 Regeneration 事件~~
+~~4. 这里为了防止出现死锁，所以在 Endpoint 重新生成 BPF 时对 Endpoint 加锁。~~
+~~5. 获取当前 Endpoint State 文件夹路径，一般时 `/var/run/cilium/state/{EnpointId}`~~
+~~6. 创建一个临时目录，tmpDir~~
+~~7. 如果对应的 Map 不存在就创建已给 Map -> 子步骤需要详解~~
+~~8. 过滤成一组基于SelectorCache的具体 Map 条目。这些条目随后可以被引入数据路径。~~
+~~9. 跟新 BPF Map  IPcache  ，查看下 ipcache 用来干啥的~~
+
+一直 debug 到核心位置，发现注释上面已经写了：
+```language
+Allow pushes an entry into the PolicyMap to allow traffic in the given  `trafficDirection` for identity `id` with destination port `dport` over  protocol `proto`.
+
+ It is assumed that `dport` and `proxyPort` are in host byte-order.
+
+ Allow向PolicyMap推送一个条目，允许身份为`id`，目的端口为`dport`，协议为`proto`的流量进入给定的`trafficDirection`。
+
+ 假设`dport`和`proxyPort`是按主机字节顺序排列的。
+ ## trafficDirection 流量方向
+```
+
+只能说这个设计有点出乎意料，上层程序对数据的处理到精简化，给到底层 eBPF 基础架构。绕了很大一圈。
+
+原理简单描述： 将现有的实例信息转至为一个 **实例 -> ID** 存储到 ipcache 中。策略存储更为简单。
+PoliyMap 存储 
+**key: ptr(id,dport,proto,trafficDirect)**
+**value:proxyPort**
+解释下key 的内容：`id -> 来源实例的 ID 也就是通过 ipcache 获取的id`，`dport:目标端口`,`proto:通信协议`
 
 
+
+
+
+
+
+
+0 = ReservedIdentityHealth (4) -> 
+1 = ReservedEKSKubeDNS (103) -> 
+2 = ReservedIdentityInit (5) -> 
+3 = ReservedCiliumOperator (105) -> 
+4 = github.com/cilium/cilium/pkg/datapath/loader.templateSecurityID (2) -> 
+5 = ReservedCoreDNS (104) -> 
+6 = ReservedCiliumKVStore (101) -> 
+7 = ReservedIdentityUnmanaged (3) -> 
+8 = ReservedIdentityRemoteNode (6) -> 
+9 = ReservedKubeDNS (102) -> 
+10 = ReservedEKSCoreDNS (106) -> 
+11 = ReservedCiliumEtcdOperator (107) -> 
+12 = ReservedIdentityHost (1) -> 
+13 = ReservedETCDOperator (100) -> 
+
+
+
+
+
+
+docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd   10.11.71.148
+{10.11.71.148  1f9f6dbe2f191722432ee407ed40a46082494fee9bf5929ad653e04a17f2e3ad  f00d::a0f:0:0:bd64    1f9f6dbe2f19  d6:a4:50:4a:84:a8   cilium0@if19}
+docker run -d --name app2 --net cilium-net -l "id=app2" nginx   
+{10.11.237.236  a5b9160b399224d0b329fe1885bc07a4449b4273c0fa5ff462c7dc319e2990e7  f00d::a0f:0:0:bd64    a5b9160b3992  06:46:c4:a2:66:b6  cilium0@if49}
+docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
+docker run --rm -ti --net cilium-net -l "id=app3" cilium/demo-client curl -m 20 http://app1

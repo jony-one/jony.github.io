@@ -13,14 +13,21 @@ author: Jony
 
 # Cilium 源码阅读： 功能解析
 
+git clone https://gitee.com/2228598786/delve.git $GOPATH/src/github.com/go-delve/delve
+export GOPROXY=https://goproxy.io,direct
+
+
 查看了一下 cilium-docker 的功能主要以 IPAM 为主
 sudo nohup /home/vagrant/go/bin/dlv attach 651 --headless=true --listen=:9526  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 6349 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
+sudo nohup /home/vagrant/go/bin/dlv attach 7590 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
 sudo nohup /home/vagrant/go/bin/dlv attach 5049 --headless=true --listen=:9528  --api-version=2 --accept-multiclient --log &
 
 docker network create --driver cilium --ipam-driver cilium cilium-net
 docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd
+docker run -d --name app4 --net cilium-net -l "id=app4" nginx
+docker run -d --name app2 --net cilium-net -l "id=app2" nginx
 docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
+docker run --rm -ti --net cilium-net -l "id=app3" cilium/demo-client curl -m 20 http://app1
 
 
 

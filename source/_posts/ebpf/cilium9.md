@@ -15,13 +15,27 @@ author: Jony
 
 查看了一下 cilium-docker 的功能主要以 IPAM 为主
 sudo nohup /home/vagrant/go/bin/dlv attach 651 --headless=true --listen=:9526  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5113 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
+sudo nohup /home/vagrant/go/bin/dlv attach 6349 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
 sudo nohup /home/vagrant/go/bin/dlv attach 5049 --headless=true --listen=:9528  --api-version=2 --accept-multiclient --log &
 
 docker network create --driver cilium --ipam-driver cilium cilium-net
 docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd
 docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
 
+
+
+[{
+    "labels": [{"key": "name", "value": "l3-rule"}],
+    "endpointSelector": {"matchLabels":{"id":"app1"}},
+    "ingress": [{
+        "fromEndpoints": [
+            {"matchLabels":{"id":"app2"}}
+        ],
+        "toPorts": [{
+                "ports": [{"port": "80", "protocol": "TCP"}]
+        }]
+    }]
+}]
 
 http:///var/run/cilium/cilium.sock//v1/ipam?family=ipv4&owner=docker-ipam
 Accept:application/json

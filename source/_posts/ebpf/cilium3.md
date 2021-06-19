@@ -280,6 +280,23 @@ docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 200
 12 = /sys/fs/bpf/tc/globals/cilium_policy_03812 -> 
 13 = /sys/fs/bpf/tc/globals/cilium_lb4_backends -> 
 14 = /sys/fs/bpf/tc/globals/cilium_lb4_source_range -> 
-15 = /sys/fs/bpf/tc/globals/cilium_policy_00906 -> 
 
+
+
+0 = /sys/fs/bpf/tc/globals/cilium_lxc -> 
+1 = /sys/fs/bpf/tc/globals/cilium_tunnel_map -> 
+2 = /sys/fs/bpf/tc/globals/cilium_lb6_services_v2 -> 
+3 = /sys/fs/bpf/tc/globals/cilium_lb6_backends -> 
+4 = /sys/fs/bpf/tc/globals/cilium_lb6_reverse_nat -> 
+5 = /sys/fs/bpf/tc/globals/cilium_lb4_backends -> 
+6 = /sys/fs/bpf/tc/globals/cilium_lb4_reverse_nat -> 
+7 = /sys/fs/bpf/tc/globals/cilium_policy_01312 -> 
+10 = /sys/fs/bpf/tc/globals/cilium_metrics -> 
+11 = /sys/fs/bpf/tc/globals/cilium_lb6_source_range -> 
+12 = /sys/fs/bpf/tc/globals/cilium_ct4_global -> 
+13 = /sys/fs/bpf/tc/globals/cilium_ct6_global -> 
+14 = /sys/fs/bpf/tc/globals/cilium_lb4_services_v2 -> 
+15 = /sys/fs/bpf/tc/globals/cilium_lb4_source_range -> 
+16 = /sys/fs/bpf/tc/globals/cilium_ipcache -> 
+18 = /sys/fs/bpf/tc/globals/cilium_ct_any4_global -> 
 

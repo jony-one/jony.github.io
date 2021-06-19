@@ -15,7 +15,7 @@ author: Jony
 
 查看了一下 cilium-docker 的功能主要以 IPAM 为主
 sudo nohup /home/vagrant/go/bin/dlv attach 651 --headless=true --listen=:9526  --api-version=2 --accept-multiclient --log &
-sudo nohup /home/vagrant/go/bin/dlv attach 5113 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
+sudo nohup /home/vagrant/go/bin/dlv attach 18376 --headless=true --listen=:9527  --api-version=2 --accept-multiclient --log &
 sudo nohup /home/vagrant/go/bin/dlv attach 5049 --headless=true --listen=:9528  --api-version=2 --accept-multiclient --log &
 
 docker network create --driver cilium --ipam-driver cilium cilium-net

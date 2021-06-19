@@ -211,11 +211,118 @@ PoliyMap 存储
 **value:proxyPort**
 解释下key 的内容：`id -> 来源实例的 ID 也就是通过 ipcache 获取的id`，`dport:目标端口`,`proto:通信协议`
 
+结构如下：
+
+```golang
+type PolicyKey struct {
+	Identity         uint32 `align:"sec_label"`  // => 36895
+	DestPort         uint16 `align:"dport"` // In network byte-order   => 80
+	Nexthdr          uint8  `align:"protocol"`   // TCP 
+	TrafficDirection uint8  `align:"egress"`     // =>  0
+}
+
+type PolicyEntry struct {
+	ProxyPort uint16 `align:"proxy_port"` // In network byte-order
+	Pad0      uint16 `align:"pad0"`
+	Pad1      uint16 `align:"pad1"`
+	Pad2      uint16 `align:"pad2"`
+	Packets   uint64 `align:"packets"`
+	Bytes     uint64 `align:"bytes"`
+}
+```
+
+解释到这了：来源实例的 ID 一开始只是假设，但是后来确实坐实了。比如这里的 36895 通过查看 ipcache 就可以找到对应的实例：
+
+```bash
+cilium map get  cilium_ipcache
+Key                             Value             State   Error
+f00d::a0f:0:0:2fd8/128          4 0 0.0.0.0       sync    
+10.0.2.15/32                    1 0 0.0.0.0       sync    
+fe80::3cac:d1ff:fe3d:fe30/128   1 0 0.0.0.0       sync    
+10.11.90.17/32                  36895 0 0.0.0.0   sync  
+
+docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd   10.11.71.148
+{10.11.255.104  32327f7b4cf9  f00d::a0f:0:0:36a    32327f7b4cf9  6e:b0:7d:4e:6b:e5   cilium0@if19}
+docker run -d --name app2 --net cilium-net -l "id=app2" nginx   
+{10.11.90.17  a94c744974c4  f00d::a0f:0:0:36a    a94c744974c4  1a:6d:c6:85:08:4d  cilium0@if49}
+```
+
+而对应的实例就是这个 IP。
+也就是说 app2 实例来访问 app1 实例的时候，eBPF 从二层截取到数据流，获取到来源IP，目标端口号，然后从 ipCache 中获取标识信息，
+判断是否允许访问目标端口。
+
+既然是多重判断那么就需要找出  ipcache 的结构体。还要找出如何将信息添加到 ipcache ，底层的逻辑结构推断出来了，那么 ipcache 属于辅助填充条件
+找出的思路，就是想上反推，思考的地方有两点，就是在添加策略的时候，将条件推到 ipcahe 是同步的还是异步的，首先可以确定的一点就是推送到 ipcache 
+是先决条件，应该是在实例生成的时候推送到  ipcache 。所以应该冲添加实例的入口下手进行程序逻辑判断。
+那就回到 createEndpoint 方法，但是找了半天也没有找到更新 ipcache 的接口调用，索性就直接冲调用接口底层打了一个端点：
+
+```golang
+pkg/maps/ipcache/ipcache.go
+func NewKey(ip net.IP, mask net.IPMask) Key {  
+	result := Key{}
+
+	ones, _ := mask.Size()   // break
+	...
+	return result
+}
+```
+
+猜测是异步的，没想到异步的这么彻底，也就是说可以完整的用在生产环境。通过订阅 consul 的某个键来完成。也就是说在某个阶段将 IP 传送到 consul 中。
+
+```json
+{
+	"key": "cilium/state/ip/v1/default/10.11.227.54",
+	"value": {
+		"IP": "10.11.227.54",
+		"Mask": null,
+		"HostIP": "10.0.2.15",
+		"ID": 5,
+		"Key": 0,
+		"Metadata": "cilium-global:default:runtime1:3459"
+	}
+}
+```
+
+那么问题来了什么地方丢过来的，而且这份 ID 也分配了，Metadata 也分配了，global 看着很熟悉，所以就回头看下 createEndpoint 吧。
+
+调用链如下：
+
+```bash
+daemon/cmd/endpoint.go#createEndpoint => ep.UpdateLabels
+	pkg/endpoint/endpoint.go#UpdateLabels  => e.runIdentityResolver
+	    pkg/endpoint/endpoint.go#runIdentityResolver =>  e.identityLabelsChanged
+	         pkg/endpoint/endpoint.go#identityLabelsChanged  =>   e.SetIdentity
+	               pkg/endpoint/policy.go#SetIdentity   =>    e.runIPIdentitySync
+	                      pkg/endpoint/policy.go#runIPIdentitySync   =>   ipcache.UpsertIPToKVStore
+```
 
 
 
 
+~~~~
+结构定义如下：
 
+```golang
+// 与 bpf/lib/common.h endpoint_key 结构体同步
+type EndpointKey struct {
+	IP     types.IPv6 `align:"$union0"`
+	Family uint8      `align:"family"`  // 地址类型 IPv4 和 IPv6
+	Key    uint8      `align:"key"`     // 默认=0
+	Pad2   uint16     `align:"pad5"`
+}
+// 与 <bpf/lib/common.h> endpoint_info 结构体同步
+type EndpointInfo struct {
+	IfIndex uint32 `align:"ifindex"`
+	Unused  uint16 `align:"unused"`
+	LxcID   uint16 `align:"lxc_id"`
+	Flags   uint32 `align:"flags"`
+	// go alignment
+	_       uint32
+	MAC     MAC        `align:"mac"`
+	NodeMAC MAC        `align:"node_mac"`
+	Pad     pad4uint32 `align:"pad"`
+}
+```
 
 
 0 = ReservedIdentityHealth (4) -> 
@@ -234,13 +341,26 @@ PoliyMap 存储
 13 = ReservedETCDOperator (100) -> 
 
 
+0 = {uint8} 110 6e
+1 = {uint8} 176
+2 = {uint8} 125
+3 = {uint8} 78
+4 = {uint8} 107
+5 = {uint8} 229
 
 
 
+demo Mac     6e:b0:7d:4e:6b:e5        10.11.255.104
+nginx Mac    1a:6d:c6:85:08:4d        
+enp0s3 Mac： 52:54:00:12:35:02
+docker0 Mac：02:42:ac:11:00:03
 
 docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd   10.11.71.148
-{10.11.71.148  1f9f6dbe2f191722432ee407ed40a46082494fee9bf5929ad653e04a17f2e3ad  f00d::a0f:0:0:bd64    1f9f6dbe2f19  d6:a4:50:4a:84:a8   cilium0@if19}
+{10.11.255.104  32327f7b4cf9  f00d::a0f:0:0:36a    32327f7b4cf9  6e:b0:7d:4e:6b:e5   cilium0@if19}
 docker run -d --name app2 --net cilium-net -l "id=app2" nginx   
-{10.11.237.236  a5b9160b399224d0b329fe1885bc07a4449b4273c0fa5ff462c7dc319e2990e7  f00d::a0f:0:0:bd64    a5b9160b3992  06:46:c4:a2:66:b6  cilium0@if49}
-docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
-docker run --rm -ti --net cilium-net -l "id=app3" cilium/demo-client curl -m 20 http://app1
+{10.11.90.17  a94c744974c4  f00d::a0f:0:0:36a    a94c744974c4  1a:6d:c6:85:08:4d  cilium0@if49}
+~~~~
+
+
+
+

@@ -96,7 +96,7 @@ $ export V=docker0 &&  tc filter show dev $V ingress && echo "========" &&tc fil
 
 Map 共有
 
-| 名称                  |         作用域       |       作用                              |
+| 名称                   |         作用域       |       作用                              |
 | Connection Tracking   | node or endpoint    |       连接跟踪表                         | 
 | NAT                   |  node               |        NAT映射表                        |
 | Neighbor Table        | node                |           |
@@ -283,6 +283,15 @@ func NewKey(ip net.IP, mask net.IPMask) Key {
 }
 ```
 
+处理上面这端数据的调用链如下：
+
+```bash
+pkg/ipcache/kvstore.go#Watch  => IPIdentityCache.Upsert // 监听 kvstore.EventTypeCreate 创建事件
+	pkg/ipcache/ipcache.go#Upsert =>  listener.OnIPIdentityCacheChange
+	    pkg/datapath/ipcache/listener.go#OnIPIdentityCacheChange  => l.bpfMap.Update
+```
+
+
 那么问题来了什么地方丢过来的，而且这份 ID 也分配了，Metadata 也分配了，global 看着很熟悉，所以就回头看下 createEndpoint 吧。
 
 调用链如下：
@@ -296,7 +305,33 @@ daemon/cmd/endpoint.go#createEndpoint => ep.UpdateLabels
 	                      pkg/endpoint/policy.go#runIPIdentitySync   =>   ipcache.UpsertIPToKVStore
 ```
 
+现在两边应该就能串起来了，在创建实例的时候，首先调用 requestAddres 接口，然后调用 createEndpoint 接口，createEndpoint 会创建 Endpoint 
+虚拟网络等信息，并且设置全局唯一 ID。形成一个实例信息发送到 consul 中。然后 watch 监听到 consul 有新的值就会启动 ipcache 的流程将基本信息
+存储到 ipcache 中。
 
+那 ipcache 具体存储什么呢？
+
+```golang
+type Key struct {
+	Prefixlen uint32 `align:"lpm_key"`   //  64
+	Pad1      uint16 `align:"pad1"`
+	Pad2      uint8  `align:"pad2"`
+	Family    uint8  `align:"family"`    // 1
+	// represents both IPv6 and IPv4 (in the lowest four bytes)
+	IP types.IPv6 `align:"$union0"`    // 10.11.41.206
+}
+type RemoteEndpointInfo struct {
+	SecurityIdentity uint32     `align:"sec_label"`    // 62820
+	TunnelEndpoint   types.IPv4 `align:"tunnel_endpoint"`
+	Key              uint8      `align:"key"`   // 
+}
+```
+
+这就是存储的具体内容。
+
+
+
+下面就需要具体分析 ipcache、lxc、filter 等代码了。
 
 
 ~~~~

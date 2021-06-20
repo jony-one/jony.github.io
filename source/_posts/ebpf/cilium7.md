@@ -22,6 +22,7 @@ docker network create --driver cilium --ipam-driver cilium cilium-net
 docker run -d --name app1 --net cilium-net -l "id=app1" cilium/demo-httpd
 docker run --rm -ti --net cilium-net -l "id=app2" cilium/demo-client curl -m 20 http://app1
 
+export HTTP_PROXY=http://192.168.0.90:58591; export HTTPS_PROXY=http://192.168.0.90:58591; export ALL_PROXY=socks5://192.168.0.90:51837
 
 http:///var/run/cilium/cilium.sock//v1/ipam?family=ipv4&owner=docker-ipam
 Accept:application/json

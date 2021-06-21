@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>Cilium 解析阅读：如何制定和执行 L3 策略 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="Cilium 源码阅读：如何制定和执行 L3 策略 #NOTE： 在 docker 部署下 debug 我认为理解 eBPF 代码还比较简单，多看看内核代码就行了，但配置和编写 eBPF 就要难多了。 Cilium 提供了 CNI 和 kube-proxy replacement 功能，相比 iptable 性能要好很多当前代码复杂度也上升了。 本文做了一个官方 Demo  顺便解析一下代码以把整">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cilium 解析阅读：如何制定和执行 L3 策略">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/fdd12801d8bb/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="Cilium 源码阅读：如何制定和执行 L3 策略 #NOTE： 在 docker 部署下 debug 我认为理解 eBPF 代码还比较简单，多看看内核代码就行了，但配置和编写 eBPF 就要难多了。 Cilium 提供了 CNI 和 kube-proxy replacement 功能，相比 iptable 性能要好很多当前代码复杂度也上升了。 本文做了一个官方 Demo  顺便解析一下代码以把整">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-06-14T11:44:19.000Z">
+<meta property="article:modified_time" content="2021-06-21T01:48:18.588Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta property="article:tag" content="cilium">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf,cilium">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/fdd12801d8bb/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Mon Jun 14 2021 19:44:19 GMT+0800">
+    <meta property="article:modified_time" content="Mon Jun 21 2021 09:48:18 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/fdd12801d8bb/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-10.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">Cilium 解析阅读：如何制定和执行 L3 策略</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-06-14 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACY0lEQVR42u3aMXLkMAwEwP3/p+30kuMOABOWt1qRS9ZKbAUCasDX10cfLzw8PDw8PDw8vIfxXvHxv1+9edjxt//+N7kyWhseHh7eCm++xPk1yXOjteHh4eEt8pJP9vlTXr3+DKiuDQ8PD+/JvPOZHHwuEnh4eHifxzufT645vyA8PDy85/OqrW0SzkYjq2LLfjFrwcPDw4t5+ZBp/+/V+R4eHh5ewCtvaSoOq5KQolpI3qwQDw8P7zKvGigkYW4SK+QtdbIePDw8vE3eJJKYD7Gqo7VyjIuHh4e3zqs+cjLi6r2mUWHAw8PDG/CSUVa1yc4HafNIFw8PD2+fV8Xkn/vCZqnWVq1C3cPDw8P7Id48ui3EBMWi0ny5eHh4eJd5+XaBSZOdLDR53dHd8PDw8BZ51c96HiVUC0k1DsbDw8P7LV6+Eeo8xLr3IqKn4+Hh4V3m9eLUHjXZXjB5TXh4eHg7vDwO6IUFve1Wk8YaDw8P7zav2uwm55M75I17uZzg4eHhrfCqZ/Lwt7cVYFIe8PDw8HZ485Z33nBPAmI8PDy8fV41hO2VhKQM9Bp3PDw8vN/i9YKGnF1FVl83Hh4e3j6v1xz3FpqEEc0RGh4eHt5lXvU4PyaPaHttdFRs8PDw8C7zfnbLVLVdTkLhcvCBh4eHt8LLi8G81W5uQs1LCx4eHt4iL49lq1Fvb7jV3F6Ah4eH90herzmuttf5MAwPDw/v7/LyTVrRQltRCB4eHt4mLx965QFu787V0oKHh4e3z+t93PNtBG8WFMS+hW0KeHh4eJd5n3fg4eHh4eHh4eE94PgGAf4+2jkAhmgAAAAASUVORK5CYII=">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=Cilium 解析阅读：如何制定和执行 L3 策略&url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=Cilium 解析阅读：如何制定和执行 L3 策略&url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/fdd12801d8bb/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/&title=Cilium 解析阅读：如何制定和执行 L3 策略" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=Cilium 解析阅读：如何制定和执行 L3 策略&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/fdd12801d8bb/&text=Cilium 解析阅读：如何制定和执行 L3 策略" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>Cilium 源码阅读：如何制定和执行 L3 策略</h1>
+<p>#NOTE： 在 docker 部署下 debug</p>
+<p><strong>我认为理解 eBPF 代码还比较简单，多看看内核代码就行了，但配置和编写 eBPF 就要难多了。</strong></p>
+<p>Cilium 提供了 CNI 和 kube-proxy replacement 功能，相比 iptable 性能要好很多当前代码复杂度也上升了。</p>
+<p>本文做了一个官方 Demo  顺便解析一下代码以把整个过程透明化：</p>
+<p>Demo 参考：<a target="_blank" rel="noopener" href="https://docs.cilium.io/en/v1.8/gettingstarted/docker/">https://docs.cilium.io/en/v1.8/gettingstarted/docker/</a></p>
+<p>看下 <code>cilium policy import l3_l4_policy.json</code> 得处理流程：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">[&#123;</span><br><span class="line">	<span class="attr">&quot;labels&quot;</span>: [&#123;</span><br><span class="line">		<span class="attr">&quot;key&quot;</span>: <span class="string">&quot;name&quot;</span>,</span><br><span class="line">		<span class="attr">&quot;value&quot;</span>: <span class="string">&quot;l3-rule&quot;</span></span><br><span class="line">	&#125;],</span><br><span class="line">	<span class="attr">&quot;endpointSelector&quot;</span>: &#123;</span><br><span class="line">		<span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">			<span class="attr">&quot;id&quot;</span>: <span class="string">&quot;app1&quot;</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="attr">&quot;ingress&quot;</span>: [&#123;</span><br><span class="line">		<span class="attr">&quot;fromEndpoints&quot;</span>: [&#123;</span><br><span class="line">			<span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">				<span class="attr">&quot;id&quot;</span>: <span class="string">&quot;app2&quot;</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;],</span><br><span class="line">		<span class="attr">&quot;toPorts&quot;</span>: [&#123;</span><br><span class="line">			<span class="attr">&quot;ports&quot;</span>: [&#123;</span><br><span class="line">				<span class="attr">&quot;port&quot;</span>: <span class="string">&quot;80&quot;</span>,</span><br><span class="line">				<span class="attr">&quot;protocol&quot;</span>: <span class="string">&quot;TCP&quot;</span></span><br><span class="line">			&#125;]</span><br><span class="line">		&#125;]</span><br><span class="line">	&#125;]</span><br><span class="line">&#125;]</span><br></pre></td></tr></table></figure>
+<p>命令会触发 CMD 得 import 方法最终会生成新的请求发送到 cilium_agent，调用链如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cmd.loadPolicy   <span class="comment"># cilium/cmd/policy_import.go</span></span><br><span class="line">client.PolicyPut </span><br><span class="line">    c.Policy.PutPolicy</span><br><span class="line">        a.transport.Submit</span><br></pre></td></tr></table></figure>
+<p>经过上面的调用链就会将请求通过 unix 协议发送出去。</p>
+<p>cilium-agent 接收到请求后，开始处理策略。之前大概浏览过 v0.10 的代码，重新生成了 BPF 程序。所有猜测了一下处理策略的过程应该和之前的一致：</p>
+<ul>
+<li>解析策略内容</li>
+<li>根据策略内容查询 docker 的IP</li>
+<li>重新生成 BPF 程序</li>
+<li>重新加载 BPF 程序</li>
+<li>后面应该就是扫尾的动作，比如保存策略、保存 BPF 程序，添加新的监控</li>
+</ul>
+<p><code>但是总觉得不太合理。应该设计出 BPF 与 cilium 共享 map ，然后往 map 里面塞东西</code></p>
+<p>上面的流程只是猜测，具体的流量可能有很多处理，但是觉得大致思路是这样，所以按照这个思路去读代码。</p>
+<p>cilium-agent 接收到添加策略请求后会调用如下路径方法：daemon/cmd/policy.go#policyAdd</p>
+<p>看下具体代码：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注释：腾讯翻译-&gt;Policy Add将一段规则添加到守护进程拥有的策略存储库中。策略规则的最终更改将传播到所有本地管理的端点。</span></span><br><span class="line"><span class="comment">// 将规则添加到存储库后，返回存储库的策略修订号，如果无法导入更新的策略，则返回错误。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Daemon)</span> <span class="title">policyAdd</span><span class="params">(sourceRules policyAPI.Rules, opts *policy.AddOptions, resChan <span class="keyword">chan</span> <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	allEndpoints := d.endpointManager.GetPolicyEndpoints()</span><br><span class="line">	addedRules, newRev := d.policy.AddListLocked(sourceRules)</span><br><span class="line"></span><br><span class="line">	addedRules.UpdateRulesEndpointsCaches(endpointsToBumpRevision, endpointsToRegen, &amp;policySelectionWG)</span><br><span class="line"></span><br><span class="line">	repr, err := monitorAPI.PolicyUpdateRepr(<span class="built_in">len</span>(sourceRules), labels, newRev)</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		d.SendNotification(monitorAPI.AgentNotifyPolicyUpdated, repr)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> option.Config.SelectiveRegeneration &#123;</span><br><span class="line">		r := &amp;PolicyReactionEvent&#123;</span><br><span class="line">			wg:                &amp;policySelectionWG,</span><br><span class="line">			epsToBumpRevision: endpointsToBumpRevision,</span><br><span class="line">			endpointsToRegen:  endpointsToRegen,</span><br><span class="line">			newRev:            newRev,</span><br><span class="line">			upsertIdentities:  newlyAllocatedIdentities,</span><br><span class="line">		&#125;</span><br><span class="line">		_, err := d.policy.RuleReactionQueue.Enqueue(ev)	</span><br><span class="line">	&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">		d.TriggerPolicyUpdates(<span class="literal">false</span>, <span class="string">&quot;policy rules added&quot;</span>)</span><br><span class="line">		ipcache.UpsertGeneratedIdentities(newlyAllocatedIdentities)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>步骤有点多，关键还有异步处理，切换上下文处理，但是不需要关注其返回结果倒是好点。先来点线索和基本条件。</p>
+<p><code>app1.ip :10.11.152.158</code><br>
+<code>consul.ip:172.17.0.3</code><br>
+<code>registry.ip:172.17.0.2</code></p>
+<p>看注释貌似没有支持 BPF 的部分，这个意思就是这边就负责解析保存到库里，然后下发到各个节点处理的意思。所以还要找到处理的地方。</p>
+<p>首先看下 <code>GetPolicyEndpoints</code>  cilium 内置了一个 EndpointManager 管理器，用来管理每个 docker 实例，docker 的基本信息都有。这里将他们全部获取出来当然包括策略。这里获取出来的目的就是新旧策略对比进行切换。</p>
+<p>AddListLocked 也有注释：AddListLocked在存储库已锁定的情况下将规则插入到策略存储库中，预计整个规则列表已被清理。<br>
+看了下代码应该就是将规则全部保存到一个地方。至于什么地方用可能会同步到 etcd 等第三方存储。顺便把 版本号生成了，也就是说与前端完成了交互。剩下的就进入自动化过程了。</p>
+<p>UpdateRulesEndpointsCache更新r中指定规则是否选择EPS中的端点的每个规则中的缓存。<br>
+如果有任何规则与端点匹配，则将其添加到提供的IDSet，并从提供的EndpointSet中删除。当给定端点完成处理时，将向该端点发送所提供的WaitGroup信号。<br>
+大致的意思就是更新缓存中的规则，感觉也不是重点，主要作用就是将 规则与本地匹配进行一个不匹配清理的动作。什么情况下会清理：1. 当前值为空 2. 当前值指向的 docker 已经不在 alive 的状态。</p>
+<p>PolicyUpdateRepr 将策略简化成一个字符串的形式。然后通过 SendNotification 将其发送给 hubble 。监控用的好像也不是什么核心流程。</p>
+<p>接下来分别触发的是 RuleReactionQueue 和 TriggerPolicyUpdates<br>
+RuleReactionQueue 是一个异步处理的过程，会有一个上下文切换。最终触发的是 reactToRuleUpdates</p>
+<p>reactToRuleUpdates 的作用注释：<br>
+ReactToRuleUpdate执行以下操作：<br>
+*重新生成epsToRegen中的所有端点。<br>
+*将所有端点(不在epsToRegen中，但在所有Eps中)的策略修订提升为修订版本。<br>
+<em>等待重新生成完成</em>根据需要将CIDR标识更新或删除到ipcache。</p>
+<p>也还是与 ipcache 有关系，但是  epsToRegen 是什么操作呢。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">reactToRuleUpdates</span><span class="params">(epsToBumpRevision, epsToRegen *policy.EndpointSet, rev <span class="keyword">uint64</span>, upsertIdentities <span class="keyword">map</span>[<span class="keyword">string</span>]*identity.Identity, releasePrefixes []*net.IPNet)</span></span> &#123;</span><br><span class="line">	epsToBumpRevision.ForEachGo(&amp;enqueueWaitGroup, <span class="function"><span class="keyword">func</span><span class="params">(epp policy.Endpoint)</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> epp == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		epp.PolicyRevisionBumpEvent(rev)</span><br><span class="line">	&#125;)</span><br><span class="line">	epsToRegen.ForEachGo(&amp;enqueueWaitGroup, <span class="function"><span class="keyword">func</span><span class="params">(ep policy.Endpoint)</span></span> &#123;</span><br><span class="line">		ep.RegenerateIfAlive(regenMetadata)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> upsertIdentities != <span class="literal">nil</span> &#123;</span><br><span class="line">		ipcache.UpsertGeneratedIdentities(upsertIdentities)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>epsToRegen 就是 Endpoint 的一个 Set 集合。RegenerateIfAlive 在导入上诉策略并没有触发，UpsertGeneratedIdentities 是用来更新 k8s 缓存，目前并没有用到，所以没有具体执行。</p>
+<p>思考：如果这里只是把 Policy 保存到本地内存，那么执行策略从如何触发的？是共享 Map 了么？那么为什么没有看见直接操作 map，是不是异步触发了？</p>
+<p>一直到执行创建一个实例命令执行，有了新的线索：<br>
+<code>docker run -d --name app1 --net cilium-net -l &quot;id=app1&quot; cilium/demo-httpd</code></p>
+<p>触发了 regenerateBPF 方法的执行，而上游也是触发了策略的更新，异步来完成 regenerateBPF 。</p>
+<p>然后技术回到上面的方法：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *Endpoint)</span> <span class="title">RegenerateIfAlive</span><span class="params">(regenMetadata *regeneration.ExternalRegenerationMetadata)</span> &lt;-<span class="title">chan</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> e.Regenerate(regenMetadata)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于首次创建的实例，会触发 CreateMap 这里创建的 Map 就是 BPFMap，然后调用 ObjPin 将 Map pin 住。创建成功将 Map 清空。中间流程太多，那么我就查找和查看最核心的点写入 Map 的是什么内容？结构是什么样子？后续如何操作运行的？</p>
+<p>/sys/fs/bpf/tc/globals/cilium_policy_01945<br>
+CT_MAP_TCP4:/sys/fs/bpf/tc/globals/cilium_ct4_global<br>
+CT_MAP_ANY4:/sys/fs/bpf/tc/globals/cilium_ct_any4_global<br>
+CT_MAP_TCP6:/sys/fs/bpf/tc/globals/cilium_ct6_global<br>
+CT_MAP_ANY6:/sys/fs/bpf/tc/globals/cilium_ct_any6_global</p>
+<p>具体就需要观察有多少种 map，可以通过 <code>pkg/bpf/map_linux.go</code> 来向上推导有哪些 Map，也可以搜索关键字。因为存入 Map 中的都是指针所以找到指针指向就可以了。</p>
+<p>代码一直 debug 反推到 daemon 的初始化函数 init()  在初始化中对 PolicyMap 进行了初始化创建：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Daemon)</span> <span class="title">init</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	globalsDir := option.Config.GetGlobalsDir() <span class="comment">// /sys/fs/bpf/tc/globals/</span></span><br><span class="line"></span><br><span class="line">	d.createNodeConfigHeaderfile()</span><br><span class="line">	eppolicymap.CreateEPPolicyMap()</span><br><span class="line">	d.Datapath().Loader().Reinitialize(d.ctx, d, d.mtuConfig.GetDeviceMTU(), d.Datapath(), d.l7Proxy, d.ipam)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateEPPolicyMap</span><span class="params">()</span></span> &#123;</span><br><span class="line">	CreateWithName(MapName)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateWithName</span><span class="params">(mapName <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	buildMap.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		mapType := bpf.MapTypeHash</span><br><span class="line">		fd, err := bpf.CreateMap(mapType,</span><br><span class="line">			<span class="keyword">uint32</span>(unsafe.Sizeof(policymap.PolicyKey&#123;&#125;)),</span><br><span class="line">			<span class="keyword">uint32</span>(unsafe.Sizeof(policymap.PolicyEntry&#123;&#125;)),</span><br><span class="line">			<span class="keyword">uint32</span>(policymap.MaxEntries),</span><br><span class="line">			bpf.GetPreAllocateMapFlags(mapType),</span><br><span class="line">			<span class="number">0</span>, innerMapName)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.WithError(err).Fatal(<span class="string">&quot;unable to create EP to policy map&quot;</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		EpPolicyMap = bpf.NewMap(mapName,</span><br><span class="line">			bpf.MapTypeHashOfMaps,</span><br><span class="line">			&amp;EndpointKey&#123;&#125;,</span><br><span class="line">			<span class="keyword">int</span>(unsafe.Sizeof(EndpointKey&#123;&#125;)),</span><br><span class="line">			&amp;EPPolicyValue&#123;&#125;,</span><br><span class="line">			<span class="keyword">int</span>(unsafe.Sizeof(EPPolicyValue&#123;&#125;)),</span><br><span class="line">			MaxEntries,</span><br><span class="line">			<span class="number">0</span>,</span><br><span class="line">			<span class="number">0</span>,</span><br><span class="line">			bpf.ConvertKeyValue,</span><br><span class="line">		).WithCache()</span><br><span class="line">		EpPolicyMap.InnerID = <span class="keyword">uint32</span>(fd)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	_, err := EpPolicyMap.OpenOrCreate()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> PolicyEntry <span class="keyword">struct</span> &#123;</span><br><span class="line">	ProxyPort <span class="keyword">uint16</span> <span class="string">`align:&quot;proxy_port&quot;`</span> <span class="comment">// In network byte-order</span></span><br><span class="line">	Pad0      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad0&quot;`</span></span><br><span class="line">	Pad1      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad1&quot;`</span></span><br><span class="line">	Pad2      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad2&quot;`</span></span><br><span class="line">	Packets   <span class="keyword">uint64</span> <span class="string">`align:&quot;packets&quot;`</span></span><br><span class="line">	Bytes     <span class="keyword">uint64</span> <span class="string">`align:&quot;bytes&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> PolicyKey <span class="keyword">struct</span> &#123;</span><br><span class="line">	Identity         <span class="keyword">uint32</span> <span class="string">`align:&quot;sec_label&quot;`</span></span><br><span class="line">	DestPort         <span class="keyword">uint16</span> <span class="string">`align:&quot;dport&quot;`</span> <span class="comment">// In network byte-order</span></span><br><span class="line">	Nexthdr          <span class="keyword">uint8</span>  <span class="string">`align:&quot;protocol&quot;`</span></span><br><span class="line">	TrafficDirection <span class="keyword">uint8</span>  <span class="string">`align:&quot;egress&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> EndpointKey <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// represents both IPv6 and IPv4 (in the lowest four bytes)</span></span><br><span class="line">	IP     types.IPv6 <span class="string">`align:&quot;$union0&quot;`</span></span><br><span class="line">	Family <span class="keyword">uint8</span>      <span class="string">`align:&quot;family&quot;`</span></span><br><span class="line">	Key    <span class="keyword">uint8</span>      <span class="string">`align:&quot;key&quot;`</span></span><br><span class="line">	Pad2   <span class="keyword">uint16</span>     <span class="string">`align:&quot;pad5&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> EPPolicyValue <span class="keyword">struct</span>&#123; Fd <span class="keyword">uint32</span> &#125;</span><br></pre></td></tr></table></figure>
+<p>测试：当导入 policy 文件的时候并没有引发更新 PolicyMap ，测试了三次都没有触发。不由得猜想是否需要创建 Docker 实例的时候才进行更新，直接将创建的 IP 更新到 Map。<br>
+执行命令：<br>
+docker run --rm -ti --net cilium-net -l “id=app2” cilium/demo-client curl -m 2000 <a target="_blank" rel="noopener" href="http://app1">http://app1</a></p>
+<p>0 = /sys/fs/bpf/tc/globals/cilium_lxc -&gt;<br>
+1 = /sys/fs/bpf/tc/globals/cilium_ipcache -&gt;<br>
+2 = /sys/fs/bpf/tc/globals/cilium_lb6_backends -&gt;<br>
+3 = /sys/fs/bpf/tc/globals/cilium_metrics -&gt;<br>
+4 = /sys/fs/bpf/tc/globals/cilium_tunnel_map -&gt;<br>
+5 = /sys/fs/bpf/tc/globals/cilium_lb6_services_v2 -&gt;<br>
+6 = /sys/fs/bpf/tc/globals/cilium_lb6_reverse_nat -&gt;<br>
+7 = /sys/fs/bpf/tc/globals/cilium_lb4_services_v2 -&gt;<br>
+8 = /sys/fs/bpf/tc/globals/cilium_lb4_reverse_nat -&gt;<br>
+9 = /sys/fs/bpf/tc/globals/cilium_policy_03221 -&gt;<br>
+10 = /sys/fs/bpf/tc/globals/cilium_lb6_source_range -&gt;<br>
+11 = /sys/fs/bpf/tc/globals/cilium_policy_00501 -&gt;<br>
+12 = /sys/fs/bpf/tc/globals/cilium_policy_03812 -&gt;<br>
+13 = /sys/fs/bpf/tc/globals/cilium_lb4_backends -&gt;<br>
+14 = /sys/fs/bpf/tc/globals/cilium_lb4_source_range -&gt;</p>
+<p>0 = /sys/fs/bpf/tc/globals/cilium_lxc -&gt;<br>
+1 = /sys/fs/bpf/tc/globals/cilium_tunnel_map -&gt;<br>
+2 = /sys/fs/bpf/tc/globals/cilium_lb6_services_v2 -&gt;<br>
+3 = /sys/fs/bpf/tc/globals/cilium_lb6_backends -&gt;<br>
+4 = /sys/fs/bpf/tc/globals/cilium_lb6_reverse_nat -&gt;<br>
+5 = /sys/fs/bpf/tc/globals/cilium_lb4_backends -&gt;<br>
+6 = /sys/fs/bpf/tc/globals/cilium_lb4_reverse_nat -&gt;<br>
+7 = /sys/fs/bpf/tc/globals/cilium_policy_01312 -&gt;<br>
+10 = /sys/fs/bpf/tc/globals/cilium_metrics -&gt;<br>
+11 = /sys/fs/bpf/tc/globals/cilium_lb6_source_range -&gt;<br>
+12 = /sys/fs/bpf/tc/globals/cilium_ct4_global -&gt;<br>
+13 = /sys/fs/bpf/tc/globals/cilium_ct6_global -&gt;<br>
+14 = /sys/fs/bpf/tc/globals/cilium_lb4_services_v2 -&gt;<br>
+15 = /sys/fs/bpf/tc/globals/cilium_lb4_source_range -&gt;<br>
+16 = /sys/fs/bpf/tc/globals/cilium_ipcache -&gt;<br>
+18 = /sys/fs/bpf/tc/globals/cilium_ct_any4_global -&gt;</p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/fdd12801d8bb/">https://jony-one.github.io/jony.github.io/fdd12801d8bb/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/ccc271df699e/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/060abc7d54ad/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">Cilium 源码阅读：如何制定和执行 L3 策略</span></a></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

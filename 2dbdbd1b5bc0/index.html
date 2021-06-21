@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>gRPC 学习 - HTTP2 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="gRPC 学习 名词解释  RPC: Remote procedure call 直译就是远程过程调用。基本流程如下：   简介 RPC 协议分为两类：   通讯处协议，一般和业务无关。职责就是将业务数据打包发送。例如：HSF、Dubbo、gRPC 等   应用层协议。约定业务数据和二进制串的转换规则。例如：Hessian、Protobuf、JSON HTTP 调用实际上依然是 RPC。   gR">
+<meta property="og:type" content="article">
+<meta property="og:title" content="gRPC 学习 - HTTP2">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="gRPC 学习 名词解释  RPC: Remote procedure call 直译就是远程过程调用。基本流程如下：   简介 RPC 协议分为两类：   通讯处协议，一般和业务无关。职责就是将业务数据打包发送。例如：HSF、Dubbo、gRPC 等   应用层协议。约定业务数据和二进制串的转换规则。例如：Hessian、Protobuf、JSON HTTP 调用实际上依然是 RPC。   gR">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://jony-one.github.io/jony.github.io/images/grpc/rpc-process.png">
+<meta property="article:published_time" content="2021-03-08T05:16:51.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.190Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="microservices">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://jony-one.github.io/jony.github.io/images/grpc/rpc-process.png">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",microservices">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/2dbdbd1b5bc0/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Mon Mar 08 2021 13:16:51 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/2dbdbd1b5bc0/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-16.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">gRPC 学习 - HTTP2</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-03-08 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACZklEQVR42u3aMXLDMAwEQP//00mbJvIdaFJKZlVlIsnisiAwAF5f//p64eHh4eHh4eHhPYz3iq/f3nrzsct3f95NnozWhoeHh3eEN1viNTVZSvvdaG14eHh4B3nJkX19lOfPtHeLcIKHh4f3SF4OuP7l2Xfx8PDw/jovKRwkhYw8ccfDw8N7Dq9NbfOjv/3922oteHh4eDEvbzKd//tofw8PDw8v4LVXO0Ywa54trRAPDw9vMy8/iK9JyfOzlLodQcDDw8M7w2uLqkmjK19usmV5+w0PDw/vLt7sk214aANPtGY8PDy8I7zZJ/O7bSNtKd3Hw8PD28zLk92VJeZbk5c5osCAh4eHt4GXJM3rBdlZqXcWivDw8PB289rhgHYjVoJNO26Fh4eHd54XJaxxO6odt0oY9egAHh4e3mbeSkFh1jZrNyJKxPHw8PCO82YjU3k6npdlPzB0hYeHh3cTry0WzA70PCR8rNaCh4eHN+LlLfm8DbbeMMsD0rC/h4eHh7fMa/+zQp2VKvLwgIeHh3eGlw+hrrT5c0ZbnsDDw8M7z1tpXK2k4MnYVv0WHh4e3nHebCCgLSsMxwKSJhweHh7eTby2rTVrd82GDN6EDTw8PLzNvPbKw0C+9NlIQVSMwMPDw9vAawuvn2W0Rd4o9cfDw8M7wsuLsLMWV/tkvnF4eHh49/LaBn+b/s4Gs+pSLx4eHt4jeflCk2M9H7dKBgjw8PDw/gpvvbhQAGbFCDw8PLwNvOSIb8PA7Jfb0QQ8PDy887y22JokvkXLqky+32wNHh4e3mbe/7vw8PDw8PDw8PAecH0DS3algdvPTYIAAAAASUVORK5CYII=">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=gRPC 学习 - HTTP2&url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=gRPC 学习 - HTTP2&url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/&title=gRPC 学习 - HTTP2" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=gRPC 学习 - HTTP2&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/&text=gRPC 学习 - HTTP2" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>gRPC 学习</h1>
+<h2 id="名词解释">名词解释</h2>
+<ul>
+<li>RPC: <code>Remote procedure call</code> 直译就是<strong>远程过程调用</strong>。基本流程如下：<br>
+<img src="/jony.github.io/images/grpc/rpc-process.png" alt="RPC"></li>
+</ul>
+<h2 id="简介">简介</h2>
+<p>RPC 协议分为两类：</p>
+<ul>
+<li>
+<p>通讯处协议，一般和业务无关。职责就是将业务数据打包发送。例如：HSF、Dubbo、gRPC 等</p>
+</li>
+<li>
+<p>应用层协议。约定业务数据和二进制串的转换规则。例如：Hessian、Protobuf、JSON</p>
+<p>HTTP 调用实际上依然是 RPC。</p>
+</li>
+</ul>
+<p>gRPC 是 google 开源的高性能跨语言的 RPC 方案，并且采用的是 HTTP2 作为通信层协议。gRPC 的设计目标是在任何环境下运行，默认使用 protobuf 作为接口描述语言（IDL interface description language）及底层消息通信格式</p>
+<p>支持可插拔的负载均衡、跟踪、运行状况检查和身份验证。</p>
+<p>它不仅支持数据中心内部和跨数据中心的服务调用，它也适合于分布式计算的最后一公里，将设备、移动应用和浏览器连接到后端服务。</p>
+<h3 id="Protobuf">Protobuf</h3>
+<p>Protobuf 是谷歌推出的一宗轻便高效的结构和的数据存储格式，把结构和的数据序列化。常用以存储数据、作为网络通信的数据载体。具有多种编程语言的 API、跨平台和可扩展的特性。比 JSON 、XML 更小解析速度更快、更易于上手。</p>
+<p>gRPC 应该是基于 HTTP2 通信协议 + Protobuf 序列化工具的组合</p>
+<p>只是对 Netty 基于 HTTP2 的应用，具体的 Framer 、Stream 参考 HTTP2 相关文档即可。</p>
+<h2 id="HTTP-1-1-与-HTTP2">HTTP 1.1 与 HTTP2</h2>
+<h3 id="HTTP-1-1-存在的问题">HTTP 1.1 存在的问题</h3>
+<ol>
+<li>线头阻塞：每个  TPC 连接同时只能处理一个请求 - 响应。如果上一个响应没有完成，后续的请求 - 响应都会受阻。</li>
+<li>Header 内容多，每次请求 Header 内容都不会变化，但是每次必传</li>
+<li>明文传输</li>
+</ol>
+<h3 id="HTTP2-优势">HTTP2 优势</h3>
+<ol>
+<li>二进制分帧传输，帧时数据传输的最小单位，以二进制传输代替原本的明文传输。</li>
+<li>多路复用：每个请求当作一个流，多个请求就是多个流，请求响应数据分成多个帧，不同流的帧交错地发送给对方，这就是 HTTP2 的多路复用</li>
+</ol>
+<p><em>TCP 连接上向对方不断发送帧，每帧的 stream identifier 标明这一帧属于哪个流，然后对方更加 stream identifier 拼接每个流所组成一整块数据。</em></p>
+<p>所以 HTTP2 对于同一个域名只需要创建一个连接，而不是多个连接。也就是说不在需要连接池。因为流的概念实现了单链接上多i请求 - 响应并行，解决了线头阻塞的问题，减少了TCP 连接梳理和TCP连接慢启动造成的问题。</p>
+<h3 id="帧格式">帧格式</h3>
+<p>所有帧都是一个固定的 9 字节头部（payload）跟一个指定长度的负载（payload）：<br>
+±----------------------------------------------+<br>
+|                 Length (24)                   |<br>
+±--------------±--------------±--------------+<br>
+|   Type (8)    |   Flags (8)   |<br>
+±±------------±--------------±------------------------------+<br>
+|R|                 Stream Identifier (31)                      |<br>
++=+=============================================================+<br>
+|                   Frame Payload (0…)                      …<br>
+±--------------------------------------------------------------+</p>
+<ul>
+<li>Lenght：frame 的长度，用 24 位无符号整数标识</li>
+<li>Type ： Frame 的类型，用 8 bits 标识。帧类型决定了帧主体的格式和语义</li>
+<li>Flags： 帧类型相关而预留的不二标识。标识对于不同的帧类型赋予了不同的语义</li>
+<li>R：保留的比特位。无实际意义</li>
+<li>Stream Identifier 用作流控制，用 31 位无符号整数标识。客户端建立的 SID 必须为奇数，服务端建立的 SID 必须为偶数</li>
+<li>Frame Payload 是主体内容，由帧类型决定
+<ul>
+<li>HEADERS：报头帧（type=0x1）</li>
+<li>DATA：数据帧（type = 0x0）</li>
+<li>PRIORITY：优先级帧（type = 0x2）</li>
+<li>RST_STREAM:流终止帧（type=0x3）</li>
+<li>SETTINGS:设置帧（type=0x4）</li>
+<li>PUSH_PROMISE：推送帧（type=0x5）</li>
+<li>PING：PING 帧（typ=0x6）</li>
+<li>GOAWAY：GOWAY帧（type=0x7）</li>
+<li>WINDOW_UPDATE：窗口更新帧（type=0x8）</li>
+<li>CONTINUATION:延续帧（type=0x9）</li>
+</ul>
+</li>
+</ul>
+<h1>参考文档</h1>
+<p><a target="_blank" rel="noopener" href="http://www.iigrowing.cn/grpc_shi_shen_me.html">gRPC 是什么</a><br>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/u010129119/article/details/79361949#1-%E7%AE%80%E4%BB%8B">HTTP/2 协议规范</a><br>
+<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/e57ca4fec26f">HTTP2 详解</a><br>
+<a target="_blank" rel="noopener" href="https://segmentfault.com/u/yongshun/articles">永顺 专栏</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/">https://jony-one.github.io/jony.github.io/2dbdbd1b5bc0/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/gRPC/">gRPC</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/5c37807099b2/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/7ff3cbdf01d6/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">gRPC 学习</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A"><span class="toc-number">1.1.</span> <span class="toc-text">名词解释</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.2.</span> <span class="toc-text">简介</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Protobuf"><span class="toc-number">1.2.1.</span> <span class="toc-text">Protobuf</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HTTP-1-1-%E4%B8%8E-HTTP2"><span class="toc-number">1.3.</span> <span class="toc-text">HTTP 1.1 与 HTTP2</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP-1-1-%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">1.3.1.</span> <span class="toc-text">HTTP 1.1 存在的问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP2-%E4%BC%98%E5%8A%BF"><span class="toc-number">1.3.2.</span> <span class="toc-text">HTTP2 优势</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%A7%E6%A0%BC%E5%BC%8F"><span class="toc-number">1.3.3.</span> <span class="toc-text">帧格式</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">参考文档</span></a></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

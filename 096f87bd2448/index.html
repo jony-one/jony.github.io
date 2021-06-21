@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>Cilium 源码阅读：cilium-agent eBPF | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="Cilium 源码阅读： 功能解析 关于 eBPF 代码解析 本次代码基于 cilium v1.8 代码版本解析。 123456789101112131415161718192021222324252627__section(&quot;from-network&quot;)__section(&quot;from-netdev&quot;)__section(&quot;from-host&amp;qu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cilium 源码阅读：cilium-agent eBPF">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/096f87bd2448/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="Cilium 源码阅读： 功能解析 关于 eBPF 代码解析 本次代码基于 cilium v1.8 代码版本解析。 123456789101112131415161718192021222324252627__section(&quot;from-network&quot;)__section(&quot;from-netdev&quot;)__section(&quot;from-host&amp;qu">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img2020.cnblogs.com/blog/1334952/202004/1334952-20200418113727982-621490951.png">
+<meta property="article:published_time" content="2021-06-16T04:44:19.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.172Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta property="article:tag" content="cilium">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img2020.cnblogs.com/blog/1334952/202004/1334952-20200418113727982-621490951.png">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf,cilium">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/096f87bd2448/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Wed Jun 16 2021 12:44:19 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/096f87bd2448/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-4.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">Cilium 源码阅读：cilium-agent eBPF</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-06-16 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACb0lEQVR42u3awU6EQBAE0P3/n9ariQGrppeBNY+TcRH6YULP1vTr618fLzw8PDw8PDw8vIfxXvHx+/yfvzn69Pc5R3c//zSpDQ8PD28n749X7QHmvIi18ye14eHh4e3nJSXmr/Lk05xXPD48PDy8h/HyZpAv0M/vgoeHh/fpvLbceTPAw8PDezIv/8Lfxqwt5rasBQ8PDy/mzRfB1/18w/4eHh4e3ilvcbApjieS1/15e7hhpgwPDw/vlNcWmhSdD2md37cNTfDw8PD28PJBqHxjrC4oji3Oz8HDw8PbycsDgqSdtO1hMqxQhBF4eHh4b+K1kUEb+F4xZICHh4d3L6+NaPNA9nxZ3I4mLI4O4OHh4V3Ay1/lLSNZsrdDWqMNMDw8PLw38daWv2txRvuizxfZeHh4ePt5Selr7SQPHdYCiMWUGg8PD+8C3nyZOwkdJnfHw8PD28lLym0Hrda2//Mr1yk1Hh4e3pt47VhAjpmEuXk8gYeHh7efl5TYLnCTWGFy98PHh4eHh3cxL9+Umo8RtNHtWvvBw8PD28Mr/jge60+W7G0jqUcH8PDw8C7mTV7ua9ecLNMPHwceHh7eRt789Z2MAkweQdSE8PDw8Lbw2jBiLUpor9ZuwuHh4eHt4bVHtHkfNIZ8E65+oHh4eHgX89pxq7VCkyskDQMPDw/vObx5oe1CeW1A4YaUGg8PD6+McduINm8kbQCR/Bvw8PDwPoWXjxeshbN1JXh4eHgP4yVFrA0lTNoGHh4e3l28fFOqDRryja42hsDDw8O7i9dugOWb/XmbmbcTPDw8vD28/3fg4eHh4eHh4eE94PgG2xvtOUlQOF4AAAAASUVORK5CYII=">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=Cilium 源码阅读：cilium-agent eBPF&url=https://jony-one.github.io/jony.github.io/096f87bd2448/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=Cilium 源码阅读：cilium-agent eBPF&url=https://jony-one.github.io/jony.github.io/096f87bd2448/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/096f87bd2448/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/096f87bd2448/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/096f87bd2448/&title=Cilium 源码阅读：cilium-agent eBPF" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=Cilium 源码阅读：cilium-agent eBPF&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/096f87bd2448/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/096f87bd2448/&text=Cilium 源码阅读：cilium-agent eBPF" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>Cilium 源码阅读： 功能解析</h1>
+<h1>关于 eBPF 代码解析</h1>
+<p>本次代码基于 cilium v1.8 代码版本解析。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">__section(<span class="string">&quot;from-network&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;from-netdev&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;from-host&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;to-netdev&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;to-host&quot;</span>)</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;from-container&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;to-container&quot;</span>)</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;from-overlay&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;to-overlay&quot;</span>)</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;connect4&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;post_bind4&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;sendmsg4&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;recvmsg4&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;getpeername4&quot;</span>)</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;post_bind6&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;connect6&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;sendmsg6&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;recvmsg6&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;getpeername6&quot;</span>)</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;from-netdev&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;sk_msg&quot;</span>)</span><br><span class="line">__section(<span class="string">&quot;sockops&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>每个 section 代表一个单独的程序，即使多个 section 放在一个文件中。</p>
+<p>思考：eBPF 工作在什么地方？被加载到哪去？不得不提的具体工作内容？</p>
+<p>据目前了解的 eBPF 程序的加载方式有三种：tc、iproute2、bpfload</p>
+<p>前两种都是网络用到的 eBPF 。所以就从 tc、iproute2 下手。既然主要程序是用来解决进流量的过滤，上层展示是用 label 来管理流量进出权限。但是底层依然使用的是 IP 权限。</p>
+<p><code>docker start demo1</code> -&gt; <code>request cilium-ipam</code> -&gt; <code>request cilium-cni</code> -&gt; <code>load demo1-bpf</code>  -&gt; <code>pin demo1-bpf-map</code><br>
+制定策略 禁止 demo2 访问 demo1<br>
+<code>docker start demo2 request demo1</code> -&gt; ↑       -&gt;         ↑            -&gt;     ↑             -&gt;      ↑             -&gt;  <code>request demo1-server</code><br>
+↓<br>
+<code>async policy</code> -&gt; <code>demo2-ip to demo1-bpf-map</code><br>
+↓<br>
+<code>demo2 request timeout</code>      &lt;-   <code>package drop</code>       &lt;-    <code>demo1 ingress</code></p>
+<p>运行命令:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">ip addr</span><br><span class="line"></span><br><span class="line">8: veth9613a25@if7: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default</span><br><span class="line">    link/ether 1a:f0:78:0d:bc:5f brd ff:ff:ff:ff:ff:ff link-netnsid 0</span><br><span class="line">10: vethb8a8bca@if9: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default</span><br><span class="line">    link/ether 12:03:76:f8:3b:a9 brd ff:ff:ff:ff:ff:ff link-netnsid 1</span><br><span class="line">11: cilium_net@cilium_host: &lt;BROADCAST,MULTICAST,NOARP,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 4e:5a:8c:58:f4:2e brd ff:ff:ff:ff:ff:ff</span><br><span class="line">12: cilium_host@cilium_net: &lt;BROADCAST,MULTICAST,NOARP,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 72:97:c5:3e:c8:f1 brd ff:ff:ff:ff:ff:ff</span><br><span class="line">13: cilium_vxlan: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 36:c1:8d:86:b1:3b brd ff:ff:ff:ff:ff:ff</span><br><span class="line">15: lxc_health@if14: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default</span><br><span class="line">    link/ether 5e:82:28:6a:db:97 brd ff:ff:ff:ff:ff:ff link-netns cilium-health</span><br><span class="line">21: lxcfd196ec6df51@if20: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default</span><br><span class="line">    link/ether 2e:07:92:04:03:d5 brd ff:ff:ff:ff:ff:ff link-netnsid 3</span><br></pre></td></tr></table></figure>
+<p><code>lxcfd196ec6df51@if20</code> 应该就是当前 demo1 的网卡了。通过  <code>ip link |grep xdp</code> 发现并没有 <code>XDP</code> 运行。可能是运行在虚拟机里的原因。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ tc filter show dev lxcfd196ec6df51@if20 ingress</span><br><span class="line">filter protocol all pref 1 bpf</span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_lxc.o:[from-container] direct-action</span><br></pre></td></tr></table></figure>
+<p>tc 的命令显示具有 eBPF 程序加载。加载 <code>bpf_lxc.o:[from-container]</code> 还是 da 模式 ：</p>
+<p><code>from-container</code> 代码查看：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">__section(<span class="string">&quot;from-container&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">handle_xgress</span><span class="params">(struct __ctx_buff *ctx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  __u16 proto;</span><br><span class="line">  <span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">  bpf_clear_meta(ctx);</span><br><span class="line"></span><br><span class="line">  send_trace_notify(ctx, TRACE_FROM_LXC, SECLABEL, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</span><br><span class="line">        TRACE_PAYLOAD_LEN);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!validate_ethertype(ctx, &amp;proto)) &#123;</span><br><span class="line">    ret = DROP_UNSUPPORTED_L2;</span><br><span class="line">    <span class="keyword">goto</span> out;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (proto) &#123;</span><br><span class="line">  <span class="function"><span class="keyword">case</span> <span class="title">bpf_htons</span><span class="params">(ETH_P_IPV6)</span>:</span></span><br><span class="line"><span class="function">    <span class="title">invoke_tailcall_if</span><span class="params">(__or(__and(is_defined(ENABLE_IPV4), is_defined(ENABLE_IPV6)),</span></span></span><br><span class="line"><span class="function"><span class="params">          is_defined(DEBUG)),</span></span></span><br><span class="line"><span class="function"><span class="params">           CILIUM_CALL_IPV6_FROM_LXC, tail_handle_ipv6)</span></span>;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="function"><span class="keyword">case</span> <span class="title">bpf_htons</span><span class="params">(ETH_P_IP)</span>:</span></span><br><span class="line"><span class="function">    <span class="title">invoke_tailcall_if</span><span class="params">(__or(__and(is_defined(ENABLE_IPV4), is_defined(ENABLE_IPV6)),</span></span></span><br><span class="line"><span class="function"><span class="params">          is_defined(DEBUG)),</span></span></span><br><span class="line"><span class="function"><span class="params">           CILIUM_CALL_IPV4_FROM_LXC, tail_handle_ipv4)</span></span>;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="function"><span class="keyword">case</span> <span class="title">bpf_htons</span><span class="params">(ETH_P_ARP)</span>:</span></span><br><span class="line"><span class="function">    ret </span>= CTX_ACT_OK;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">default</span>:</span><br><span class="line">    ret = DROP_UNKNOWN_L3;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">  <span class="keyword">if</span> (IS_ERR(ret))</span><br><span class="line">    <span class="keyword">return</span> send_drop_notify(ctx, SECLABEL, <span class="number">0</span>, <span class="number">0</span>, ret, CTX_ACT_DROP,</span><br><span class="line">          METRIC_EGRESS);</span><br><span class="line">  <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>问题还是挺多的，比如入参为什么不是 <code>__skb_buff </code> 这个问题。所以带着问题搜索了一下，然并暖。直接复习下 <code>Cilium 架构</code> 和 <code>eBPF 编程指南</code> 吧。</p>
+<h2 id="eBPF-下微服务网络安全">eBPF 下微服务网络安全</h2>
+<p>eBPF 适用于监控、安全和网络领域：</p>
+<p>Cilium 项目大量使用了 eBPF ，为基于容器的系统提供了路由和网络流量的过滤。可以在不修改内核的前提下动态的生成和应用规则。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">    _______d:app1__________</span><br><span class="line">    /    x         x</span><br><span class="line">:80/     |:22       \</span><br><span class="line">  id:app2          id:app3</span><br></pre></td></tr></table></figure>
+<p>上面就应用了 L3/L4 策略允许 app2 通过 80端口访问 app1，不允许 app3 访问 app1</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">[&#123;</span><br><span class="line">  <span class="attr">&quot;labels&quot;</span>: [&#123;</span><br><span class="line">    <span class="attr">&quot;key&quot;</span>: <span class="string">&quot;name&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;value&quot;</span>: <span class="string">&quot;l3-rule&quot;</span></span><br><span class="line">  &#125;],</span><br><span class="line">  <span class="attr">&quot;endpointSelector&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;app1&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">&quot;ingress&quot;</span>: [&#123;</span><br><span class="line">    <span class="attr">&quot;fromEndpoints&quot;</span>: [&#123;</span><br><span class="line">      <span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;app2&quot;</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;],</span><br><span class="line">    <span class="attr">&quot;toPorts&quot;</span>: [&#123;</span><br><span class="line">      <span class="attr">&quot;ports&quot;</span>: [&#123;</span><br><span class="line">        <span class="attr">&quot;port&quot;</span>: <span class="string">&quot;80&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;protocol&quot;</span>: <span class="string">&quot;TCP&quot;</span></span><br><span class="line">      &#125;]</span><br><span class="line">    &#125;]</span><br><span class="line">  &#125;]</span><br><span class="line">&#125;]</span><br></pre></td></tr></table></figure>
+<p>Cilium 具体是如何完成上面的工作的？<br>
+<img src="https://img2020.cnblogs.com/blog/1334952/202004/1334952-20200418113727982-621490951.png" alt="架构图"></p>
+<p>Cilium 为每个主机运行一个 agent，将网络策略定义转换成 BPF 程序。这些程序会被加载到内核中。这里也就解释了为什么每次注入新的策略都会触发 BPF 重新生成的问题。但是没有解决根本的问题，为什么每次策略修改都需要重新生成 BPF 程序，难道不能优化么？<br>
+当 BPF 程序被加载到容器的虚拟以太网设备上后，每次发送和接收的报文都会应用这些规则。</p>
+<p>Cilium 使用 Hook 列表：</p>
+<ul>
+<li>
+<p>XDP： XDP Hoot 最早可以在网络驱动中使用，在报文接收时触发 BPF 程序。可以修改包地址和端口</p>
+</li>
+<li>
+<p>Ingress/Egress 流控: 与 XDP 类似，也是附加到网络驱动程序上触发。但是在网络栈完成初始化的报文之后运行。该 Hook  在协议栈的 L3 层之前运行，但可以访问与报文相关的大多数元数据。</p>
+</li>
+<li>
+<p>socket 操作：socket Hook 附加到一个特定的 cgroup 上，根据 TCP 事件运行。Cilium 将 BPF Socket 操作程序附加到 cgroup 上，监听 TCP 状态变更，特别是对 ESTABLISHED 状态变更。当一个<br>
+socket 状态变化为 ESTABLISHED 时，如果 TCP socket 的连接的远程位于本节点，就附加 socket send/recv 程序。</p>
+</li>
+<li>
+<p>socket 发送接收：单台已给 TCP socket 执行发送操作时会运行 socket send/recv hook。 这个时候 hook 会检查消息或者丢弃消息。将消息发送至 TCP 层或者直接重定向到另一个套接字。Cilium 使用它来加速数据路径重定向。</p>
+<p>总结一下：就是 XDP 层工作在 sk_buff 形成之前，可以对原始数据包进行操作并且只有进这个单向可以操作。Ingress/Egress 是在 sk_buff 上操作，例如：Ingress 是在 sk_buff 形成之后进入三层之前进行操作，但是不可以在修改重定向数据包。前面两个都是在驱动层进行操作，但是 XDP 操作更提前所以看起来效率更高。二者可以互补。<br>
+Cilium 对 Socket 的支持则是放在 cgroup 上，监听 TCP 的状态，只要 TCP 进入 ESTABLISHED 状态，就会附加 BPF 程序，也就是说不会管理 socket 状态、连接建立、连接销毁操作。只会在<br>
+socket 形成连接之后判断数据包发往的方向是否在本机上，如果是就会直接转发到对应的 socket，如果不是就按照正常的流程。</p>
+</li>
+</ul>
+<p>所以 Cilium 定义了三个虚拟网卡接口，cilium_net、cilium_host、cilium_vxlan ，根据上面的 Hook 与这三个虚拟网卡接口结婚，可以创建下面的网络对象：</p>
+<ul>
+<li>预过滤（prefilter）：prefilter 会运行一个 XDP 程序，过滤网络上的流量。根据目的地选择丢弃报文、允许网络协议栈处理报文等操作。可扩展过滤规则</li>
+<li>Endpoint 策略：Endpoint Policy对象实现Cilium端点强制。使用映射查找与标识和策略相关的数据包，该层可以很好地扩展到许多端点。根据策略，<br>
+该层可以丢弃数据包、转发到本地端点、转发到服务对象或转发到L7策略对象以获得进一步的L7规则。这是Cilium数据路径中的主要对象，负责将数据包映射到标识并强制执行L3和L4策略。</li>
+<li>Service: Service对象对该对象接收到的每个包执行目的地IP和可选目的地端口上的映射查找。如果找到匹配的表项，报文将被转发到配置<br>
+的L3/L4端点之一。Service块可以用于在使用TC入口钩子的任何接口上实现独立的负载均衡器，也可以集成到端点策略对象中。</li>
+<li>socket layer Enforcement：socket layer Enforcement会使用两个钩子，socket 操作钩子和socket 发送/接收钩子来监控并附加到所有与Cilium管理的endpoint相关的TCP socket，<br>
+包括L7代理。socket操作钩子会识别要加速的候选套接字，这些候选套接字包括所有的本地节点连接(endpoint到endpoint)以及所有到Cilium代理的连接。这些标识的连接将会包含所有<br>
+由socket 发送/接收钩子处理的消息，并且使用sockmap快速重定向进行加速。快速重定向保证Cilium中实现的所有策略对于关联的socket/endpoint映射均有效，并假设<br>
+它们会直接向对端socket发送消息。sockmap send/recv钩子确保消息不会被上面提到的任何对象处理。</li>
+<li>L7策略：L7策略对象将代理的流量重定向到一个Cilium用户空间代理实例中。Cilium使用一个Envoy作为它的用户空间代理。Envoy要么转发流量，要么会根据配置的L7策略生成拒绝消息。</li>
+</ul>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/096f87bd2448/">https://jony-one.github.io/jony.github.io/096f87bd2448/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/082d1ddf21d6/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/607bc853cba7/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">Cilium 源码阅读： 功能解析</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">关于 eBPF 代码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#eBPF-%E4%B8%8B%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8"><span class="toc-number">2.1.</span> <span class="toc-text">eBPF 下微服务网络安全</span></a></li></ol></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

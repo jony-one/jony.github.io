@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>Cilium 源码阅读：如何制定和执行 L3 策略 续续 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="Cilium 源码阅读：如何制定和执行 L3 策略 macVlan 所有的资料显示 ipvlan 都会与 macvlan 放在一起比较研究。也就是表示 macvlan 出生早于 ipvlan ，那么 ipvlan 应该弥补了很多 macvlan 的不足和不好解决的问题。 macvlan 就是允许在一个物理网卡上配置多个 mac 地址，这个有点反标准，一般一个网卡只有一个 mac 地址 而且是全球唯">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cilium 源码阅读：如何制定和执行 L3 策略 续续">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/082d1ddf21d6/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="Cilium 源码阅读：如何制定和执行 L3 策略 macVlan 所有的资料显示 ipvlan 都会与 macvlan 放在一起比较研究。也就是表示 macvlan 出生早于 ipvlan ，那么 ipvlan 应该弥补了很多 macvlan 的不足和不好解决的问题。 macvlan 就是允许在一个物理网卡上配置多个 mac 地址，这个有点反标准，一般一个网卡只有一个 mac 地址 而且是全球唯">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-06-19T16:44:19.000Z">
+<meta property="article:modified_time" content="2021-06-21T01:48:18.588Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta property="article:tag" content="cilium">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf,cilium">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/082d1ddf21d6/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Sun Jun 20 2021 00:44:19 GMT+0800">
+    <meta property="article:modified_time" content="Mon Jun 21 2021 09:48:18 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/082d1ddf21d6/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">Cilium 源码阅读：如何制定和执行 L3 策略 续续</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-06-20 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACc0lEQVR42u3aQW7DMAwEwPz/0+21l7i7lKy6wfgUIImt8UEUlnx9ffT1wsPDw8PDw8PDexjvFV/v/vXLwy7/+/Pb5JfR2vDw8PCO8NolJtT8Fcye+/al4OHh4R3kJVv29ab87vfXW3+y9KKc4OHh4T2Y127fbQnBw8PD+zze3iBjVpDw8PDw/pbXHm2Tb/N7Jkfw27MWPDw8vJiXb+7nPx/t7+Hh4eEFvPWmVB7pJs2zlYYZHh4e3hlevhEny0oC2TzkzdeDh4eHd5KXN/XbRlf++pJXlhcSPDw8vLt5syNvu31fH7hXmmFF3cPDw8PbxMvjgyR0SF5WAls67uPh4eHdzFtvem0bllq+Ax4eHt5JXntszQ++7QG6ODrnhQEPDw9vK68dDsjb/HnjajZotS2MwMPDw1vg5cHrrsKQvMq6XOHh4eE9gJcXg1nLPwkm8nEuPDw8vJO8WQuqPY63we6GmTI8PDy8rbx8ifkj8w19VhKWZsrw8PDwlnn50FVyrUe9bUHaNlOGh4eHt3zmnA1d5c3+NqooChIeHh7eEV4eNMyobQFYaqHh4eHhHeHlt8vjhuSYng9jFf/Cw8PDO87LH5ZHsW0zrG2n4eHh4f0tL48AVkajkjIzuyceHh7e3by7W1yzyOO6LC319/Dw8PCWeW3wmo8d5KFwHvJG4wh4eHh4R3izRc+i3nYUII8h8PDw8M7z2gZ/HryulJP6iXh4eHiP5M3ig3yhbTMMDw8P7//y8nAhH0Foiw0eHh7eSV5y5J01ydrftKMJeHh4eOd5bdiajBEULatRaSliXDw8PLytvM+78PDw8PDw8PDwHnB9A4fE7Tkt/LNXAAAAAElFTkSuQmCC">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=Cilium 源码阅读：如何制定和执行 L3 策略 续续&url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=Cilium 源码阅读：如何制定和执行 L3 策略 续续&url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/082d1ddf21d6/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/&title=Cilium 源码阅读：如何制定和执行 L3 策略 续续" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=Cilium 源码阅读：如何制定和执行 L3 策略 续续&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/082d1ddf21d6/&text=Cilium 源码阅读：如何制定和执行 L3 策略 续续" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>Cilium 源码阅读：如何制定和执行 L3 策略</h1>
+<h2 id="macVlan">macVlan</h2>
+<p>所有的资料显示 ipvlan 都会与 macvlan 放在一起比较研究。也就是表示 macvlan 出生早于 ipvlan ，那么 ipvlan 应该弥补了很多 macvlan 的不足和不好解决的问题。</p>
+<p>macvlan 就是允许在一个物理网卡上配置多个 mac 地址，这个有点反标准，一般一个网卡只有一个 mac 地址<br>
+而且是全球唯一的。但是现在虚拟机技术越来越牛逼，所以一些原始的标准只能作为部分标准择优而选。多个 macvlan 就是多个 interface 所以前面那么多说的接口都是网卡的意思。每个 interface 都有可以自己的 IP。</p>
+<p>macvlan 最大的有点就是性能好，效率高，但是这里思考到一个问题就是 BGP？多网口肯定需要 BGP 的支持。</p>
+<p>macvlan 可以在一个 host 的网络接口上虚拟出多个网络接口也可以有自己的 MAC 和 IP 地址</p>
+<p>macvlan 模式</p>
+<ul>
+<li>可以在一个实体网卡上设定多个 mac 地址</li>
+<li>设定的 mac 地址称为子接口（<code>sub interface</code>）；实体网卡称为父接口（<code>parent interface</code>）</li>
+<li><code>parent interface</code> 可以是一个物理接口 （eth0）、802.1q、eth0.10、bonding 接口</li>
+<li>所有 interface 都可以设定 IP</li>
+<li><code>sub interface</code> 无法直接与 <code>parent interface</code> 通信</li>
+<li>vm 或者 container 要与 host 通信，还要额外建一个 sub interface 给 host</li>
+<li>sub interface 通常以 mac0@eth0 的形式来命名</li>
+</ul>
+<p>MACVlan 工作模式</p>
+<ul>
+<li>Bridge： 属于同一个 parent interface 的 macvlan 接口挂到同一个 bridge 上，可以互通（二层工作）</li>
+<li>VPEA（Virtual Ethernet Port Aggregator）：所有接口的流量都需要到外部交换器走一圈才能到达其他接口（交换机）</li>
+<li>Private：接口只接收发送给自己 MAC 地址的报文 （交换机）</li>
+<li>Passthru：父接口和响应的 MacVlan 接口捆绑在一起，这种模式每个父接口只能和一个 MacVlan 接口捆绑。并且 MacVlan 虚拟网卡接口基础 父接口的 Mac 地址。</li>
+</ul>
+<h2 id="ipvlan">ipvlan</h2>
+<p>ipvlan 也是从一个主机接口虚拟出多个虚拟网络接口。一个重要的区别就是所有的虚拟接口都有相同的 macv 地址，而拥有不同的 ip 地址。</p>
+<p>ipvlan 工作模式</p>
+<p>L2：与 macvlan 的 bridge 模式工作原理很类似，父接口作为交换机来转发子接口的数据。同一个网路的子接口可以通过父接口来转<br>
+发数据。（理解：桥接模式需要中转站，这个站点就是宿主机本身，有网络划分。如果流量要出去也只能走中转站）<br>
+L3：Ipvlan 类似路由器功能，在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，及时各个容器或者<br>
+虚拟机不在同一个网络，也可以互相 ping 通对方。因为 ipvlan 可以在中间做转发。（理解：同上但是无网络划分）</p>
+<p>同理：需要了解 IProuter2 ，读懂了应该会系统的了解整个虚拟网络。</p>
+<p>所以 cilium_net、cilium_host、cilium_vxlan</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> V=lxc807633bfedea &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_lxc.o:[from-container] direct-action </span><br><span class="line">========</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> V=lxc_health &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_lxc.o:[from-container] direct-action </span><br><span class="line">========</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> V=cilium_vxlan &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_overlay.o:[from-overlay] direct-action </span><br><span class="line">========</span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_overlay.o:[to-overlay] direct-action </span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> V=cilium_host &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_host.o:[to-host] direct-action </span><br><span class="line">========</span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_host.o:[from-host] direct-action </span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> V=cilium_net &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">filter protocol all pref 1 bpf </span><br><span class="line">filter protocol all pref 1 bpf handle 0x1 bpf_host_cilium_net.o:[to-host] direct-action </span><br><span class="line">========</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> V=docker0 &amp;&amp;  tc filter show dev <span class="variable">$V</span> ingress &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;========&quot;</span> &amp;&amp;tc filter show dev <span class="variable">$V</span> egress </span><br><span class="line">========</span><br></pre></td></tr></table></figure>
+<p>所以这三者应该是中转的组件，逐个剖析每个函数的作用：几千行代码。</p>
+<p>Map 共有</p>
+<p>| 名称                   |         作用域       |       作用                              |<br>
+| Connection Tracking   | node or endpoint    |       连接跟踪表                         |<br>
+| NAT                   |  node               |        NAT映射表                        |<br>
+| Neighbor Table        | node                |           |<br>
+| Endpoints             | node                |        本地端点Map                      |<br>
+| IP cache              | node                |     管理IP/CIDR&lt;-&gt;身份的IPCache映射      |<br>
+| Load Balancer         | node                |          负载平衡配置                    |<br>
+| Policy                | endpoint            |       管理与策略相关的BPF映射             |<br>
+| Proxy Map             | node                |           代理配置                       |<br>
+| Tunnel                | node                |        隧道端点Map                       |<br>
+| IPv4 Fragmentation    | node                |           |<br>
+| Session Affinity      | node                |           |<br>
+| IP Masq               | node                |      ip-masq-agent CIDRs               |<br>
+| Service Source Ranges | node                |           |</p>
+<p>继续了解代码：bpf 如何执行策略的</p>
+<p>调用 regenerateBPF 方法的入口在这，所以需要向上反推，什么情况下才会触发 <code>RegenerateIfAlive</code> 方法，看方法名的意思是如果存在存活节点才执行，<br>
+思考：如果没有存活节点会不会触发？如果删除节点会不会触发？epsToRegen 内容是什么怎么的来的？</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">epsToRegen.ForEachGo(&amp;enqueueWaitGroup, <span class="function"><span class="keyword">func</span><span class="params">(ep policy.Endpoint)</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> ep != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> e := ep.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> *endpoint.Endpoint:</span><br><span class="line">      <span class="comment">// Do not wait for the returned channel as we want this to be</span></span><br><span class="line">      <span class="comment">// ASync 不要等待返回的通道，因为我们希望这是异步的</span></span><br><span class="line">      e.RegenerateIfAlive(regenMetadata)</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">      log.Errorf(<span class="string">&quot;BUG: endpoint not type of *endpoint.Endpoint, received &#x27;%s&#x27; instead&quot;</span>, e)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>debug 从 policyAdd 跳转至 PolicyReactionEvent 发现 endpointsToRegen 在 policyAdd 的时候为空，跳转之后就不为空了，说明 RegenerateIfAlive 不是从<br>
+policyAdd 跳转过来的。那么就将目标转到 putPolicy 上。</p>
+<p>入参如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">&quot;endpointSelector&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;any:id&quot;</span>: <span class="string">&quot;app1&quot;</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;ingress&quot;</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">&quot;fromEndpoints&quot;</span>: [</span><br><span class="line">          &#123;</span><br><span class="line">            <span class="attr">&quot;matchLabels&quot;</span>: &#123;</span><br><span class="line">              <span class="attr">&quot;any:id&quot;</span>: <span class="string">&quot;app2&quot;</span></span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        ],</span><br><span class="line">        <span class="attr">&quot;toPorts&quot;</span>: [</span><br><span class="line">          &#123;</span><br><span class="line">            <span class="attr">&quot;ports&quot;</span>: [</span><br><span class="line">              &#123;</span><br><span class="line">                <span class="attr">&quot;port&quot;</span>: <span class="string">&quot;80&quot;</span>,</span><br><span class="line">                <span class="attr">&quot;protocol&quot;</span>: <span class="string">&quot;TCP&quot;</span></span><br><span class="line">              &#125;</span><br><span class="line">            ]</span><br><span class="line">          &#125;</span><br><span class="line">        ]</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="attr">&quot;labels&quot;</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">&quot;key&quot;</span>: <span class="string">&quot;name&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;value&quot;</span>: <span class="string">&quot;l3-rule&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;source&quot;</span>: <span class="string">&quot;&quot;</span></span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p><s>规则整合完整后就会触发 UpdateRulesEndpointsCaches 就需要更新 Endpoint 筛选出来，放到 Set 中，然后从原有的 Set 中删除。目的就是将需要</s><br>
+~~更新的 Endpoint 和 不需要更新的 Endpoint 区分开来，但是每次更新都需要修改 Revision。 ~~</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~~匹配完成后会触发 PolicyReactionEvent#reactToRuleUpdates 方法。将需要修改的 Endpoint 重新生成。进入 RegenerateIfAlive  方法：~~</span><br></pre></td></tr></table></figure>
+<p><s>1. 判断当前 Endpoint 是否处于 Alive</s><br>
+<s>2. 切换上下文至 EndpointRegenerationEvent 执行</s><br>
+<s>3. 开始处理 Regeneration 事件</s><br>
+<s>4. 这里为了防止出现死锁，所以在 Endpoint 重新生成 BPF 时对 Endpoint 加锁。</s><br>
+<s>5. 获取当前 Endpoint State 文件夹路径，一般时 <code>/var/run/cilium/state/&#123;EnpointId&#125;</code></s><br>
+<s>6. 创建一个临时目录，tmpDir</s><br>
+<s>7. 如果对应的 Map 不存在就创建已给 Map -&gt; 子步骤需要详解</s><br>
+<s>8. 过滤成一组基于SelectorCache的具体 Map 条目。这些条目随后可以被引入数据路径。</s><br>
+<s>9. 跟新 BPF Map  IPcache  ，查看下 ipcache 用来干啥的</s></p>
+<p>一直 debug 到核心位置，发现注释上面已经写了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Allow pushes an entry into the PolicyMap to allow traffic in the given  &#96;trafficDirection&#96; for identity &#96;id&#96; with destination port &#96;dport&#96; over  protocol &#96;proto&#96;.</span><br><span class="line"></span><br><span class="line"> It is assumed that &#96;dport&#96; and &#96;proxyPort&#96; are in host byte-order.</span><br><span class="line"></span><br><span class="line"> Allow向PolicyMap推送一个条目，允许身份为&#96;id&#96;，目的端口为&#96;dport&#96;，协议为&#96;proto&#96;的流量进入给定的&#96;trafficDirection&#96;。</span><br><span class="line"></span><br><span class="line"> 假设&#96;dport&#96;和&#96;proxyPort&#96;是按主机字节顺序排列的。</span><br><span class="line"> ## trafficDirection 流量方向</span><br></pre></td></tr></table></figure>
+<p>只能说这个设计有点出乎意料，上层程序对数据的处理到精简化，给到底层 eBPF 基础架构。绕了很大一圈。</p>
+<p>原理简单描述： 将现有的实例信息转至为一个 <strong>实例 -&gt; ID</strong> 存储到 ipcache 中。策略存储更为简单。<br>
+PoliyMap 存储<br>
+<strong>key: ptr(id,dport,proto,trafficDirect)</strong><br>
+<strong>value:proxyPort</strong><br>
+解释下key 的内容：<code>id -&gt; 来源实例的 ID 也就是通过 ipcache 获取的id</code>，<code>dport:目标端口</code>,<code>proto:通信协议</code></p>
+<p>结构如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> PolicyKey <span class="keyword">struct</span> &#123;</span><br><span class="line">	Identity         <span class="keyword">uint32</span> <span class="string">`align:&quot;sec_label&quot;`</span>  <span class="comment">// =&gt; 36895</span></span><br><span class="line">	DestPort         <span class="keyword">uint16</span> <span class="string">`align:&quot;dport&quot;`</span> <span class="comment">// In network byte-order   =&gt; 80</span></span><br><span class="line">	Nexthdr          <span class="keyword">uint8</span>  <span class="string">`align:&quot;protocol&quot;`</span>   <span class="comment">// TCP </span></span><br><span class="line">	TrafficDirection <span class="keyword">uint8</span>  <span class="string">`align:&quot;egress&quot;`</span>     <span class="comment">// =&gt;  0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> PolicyEntry <span class="keyword">struct</span> &#123;</span><br><span class="line">	ProxyPort <span class="keyword">uint16</span> <span class="string">`align:&quot;proxy_port&quot;`</span> <span class="comment">// In network byte-order</span></span><br><span class="line">	Pad0      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad0&quot;`</span></span><br><span class="line">	Pad1      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad1&quot;`</span></span><br><span class="line">	Pad2      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad2&quot;`</span></span><br><span class="line">	Packets   <span class="keyword">uint64</span> <span class="string">`align:&quot;packets&quot;`</span></span><br><span class="line">	Bytes     <span class="keyword">uint64</span> <span class="string">`align:&quot;bytes&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>解释到这了：来源实例的 ID 一开始只是假设，但是后来确实坐实了。比如这里的 36895 通过查看 ipcache 就可以找到对应的实例：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">cilium map get  cilium_ipcache</span><br><span class="line">Key                             Value             State   Error</span><br><span class="line">f00d::a0f:0:0:2fd8/128          4 0 0.0.0.0       sync    </span><br><span class="line">10.0.2.15/32                    1 0 0.0.0.0       sync    </span><br><span class="line">fe80::3cac:d1ff:fe3d:fe30/128   1 0 0.0.0.0       sync    </span><br><span class="line">10.11.90.17/32                  36895 0 0.0.0.0   sync  </span><br><span class="line"></span><br><span class="line">docker run -d --name app1 --net cilium-net -l <span class="string">&quot;id=app1&quot;</span> cilium/demo-httpd   10.11.71.148</span><br><span class="line">&#123;10.11.255.104  32327f7b4cf9  f00d::a0f:0:0:36a    32327f7b4cf9  6e:b0:7d:4e:6b:e5   cilium0@if19&#125;</span><br><span class="line">docker run -d --name app2 --net cilium-net -l <span class="string">&quot;id=app2&quot;</span> nginx   </span><br><span class="line">&#123;10.11.90.17  a94c744974c4  f00d::a0f:0:0:36a    a94c744974c4  1a:6d:c6:85:08:4d  cilium0@if49&#125;</span><br></pre></td></tr></table></figure>
+<p>而对应的实例就是这个 IP。<br>
+也就是说 app2 实例来访问 app1 实例的时候，eBPF 从二层截取到数据流，获取到来源IP，目标端口号，然后从 ipCache 中获取标识信息，<br>
+判断是否允许访问目标端口。</p>
+<p>既然是多重判断那么就需要找出  ipcache 的结构体。还要找出如何将信息添加到 ipcache ，底层的逻辑结构推断出来了，那么 ipcache 属于辅助填充条件<br>
+找出的思路，就是想上反推，思考的地方有两点，就是在添加策略的时候，将条件推到 ipcahe 是同步的还是异步的，首先可以确定的一点就是推送到 ipcache<br>
+是先决条件，应该是在实例生成的时候推送到  ipcache 。所以应该冲添加实例的入口下手进行程序逻辑判断。<br>
+那就回到 createEndpoint 方法，但是找了半天也没有找到更新 ipcache 的接口调用，索性就直接冲调用接口底层打了一个端点：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">pkg/maps/ipcache/ipcache.<span class="keyword">go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewKey</span><span class="params">(ip net.IP, mask net.IPMask)</span> <span class="title">Key</span></span> &#123;  </span><br><span class="line">	result := Key&#123;&#125;</span><br><span class="line"></span><br><span class="line">	ones, _ := mask.Size()   <span class="comment">// break</span></span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">return</span> result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>猜测是异步的，没想到异步的这么彻底，也就是说可以完整的用在生产环境。通过订阅 consul 的某个键来完成。也就是说在某个阶段将 IP 传送到 consul 中。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">&quot;key&quot;</span>: <span class="string">&quot;cilium/state/ip/v1/default/10.11.227.54&quot;</span>,</span><br><span class="line">	<span class="attr">&quot;value&quot;</span>: &#123;</span><br><span class="line">		<span class="attr">&quot;IP&quot;</span>: <span class="string">&quot;10.11.227.54&quot;</span>,</span><br><span class="line">		<span class="attr">&quot;Mask&quot;</span>: <span class="literal">null</span>,</span><br><span class="line">		<span class="attr">&quot;HostIP&quot;</span>: <span class="string">&quot;10.0.2.15&quot;</span>,</span><br><span class="line">		<span class="attr">&quot;ID&quot;</span>: <span class="number">5</span>,</span><br><span class="line">		<span class="attr">&quot;Key&quot;</span>: <span class="number">0</span>,</span><br><span class="line">		<span class="attr">&quot;Metadata&quot;</span>: <span class="string">&quot;cilium-global:default:runtime1:3459&quot;</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>处理上面这端数据的调用链如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pkg/ipcache/kvstore.go<span class="comment">#Watch  =&gt; IPIdentityCache.Upsert // 监听 kvstore.EventTypeCreate 创建事件</span></span><br><span class="line">	pkg/ipcache/ipcache.go<span class="comment">#Upsert =&gt;  listener.OnIPIdentityCacheChange</span></span><br><span class="line">	    pkg/datapath/ipcache/listener.go<span class="comment">#OnIPIdentityCacheChange  =&gt; l.bpfMap.Update</span></span><br></pre></td></tr></table></figure>
+<p>那么问题来了什么地方丢过来的，而且这份 ID 也分配了，Metadata 也分配了，global 看着很熟悉，所以就回头看下 createEndpoint 吧。</p>
+<p>调用链如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">daemon/cmd/endpoint.go<span class="comment">#createEndpoint =&gt; ep.UpdateLabels</span></span><br><span class="line">	pkg/endpoint/endpoint.go<span class="comment">#UpdateLabels  =&gt; e.runIdentityResolver</span></span><br><span class="line">	    pkg/endpoint/endpoint.go<span class="comment">#runIdentityResolver =&gt;  e.identityLabelsChanged</span></span><br><span class="line">	         pkg/endpoint/endpoint.go<span class="comment">#identityLabelsChanged  =&gt;   e.SetIdentity</span></span><br><span class="line">	               pkg/endpoint/policy.go<span class="comment">#SetIdentity   =&gt;    e.runIPIdentitySync</span></span><br><span class="line">	                      pkg/endpoint/policy.go<span class="comment">#runIPIdentitySync   =&gt;   ipcache.UpsertIPToKVStore</span></span><br></pre></td></tr></table></figure>
+<p>现在两边应该就能串起来了，在创建实例的时候，首先调用 requestAddres 接口，然后调用 createEndpoint 接口，createEndpoint 会创建 Endpoint<br>
+虚拟网络等信息，并且设置全局唯一 ID。形成一个实例信息发送到 consul 中。然后 watch 监听到 consul 有新的值就会启动 ipcache 的流程将基本信息<br>
+存储到 ipcache 中。</p>
+<p>那 ipcache 具体存储什么呢？</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Key <span class="keyword">struct</span> &#123;</span><br><span class="line">	Prefixlen <span class="keyword">uint32</span> <span class="string">`align:&quot;lpm_key&quot;`</span>   <span class="comment">//  64</span></span><br><span class="line">	Pad1      <span class="keyword">uint16</span> <span class="string">`align:&quot;pad1&quot;`</span></span><br><span class="line">	Pad2      <span class="keyword">uint8</span>  <span class="string">`align:&quot;pad2&quot;`</span></span><br><span class="line">	Family    <span class="keyword">uint8</span>  <span class="string">`align:&quot;family&quot;`</span>    <span class="comment">// 1</span></span><br><span class="line">	<span class="comment">// represents both IPv6 and IPv4 (in the lowest four bytes)</span></span><br><span class="line">	IP types.IPv6 <span class="string">`align:&quot;$union0&quot;`</span>    <span class="comment">// 10.11.41.206</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> RemoteEndpointInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	SecurityIdentity <span class="keyword">uint32</span>     <span class="string">`align:&quot;sec_label&quot;`</span>    <span class="comment">// 62820</span></span><br><span class="line">	TunnelEndpoint   types.IPv4 <span class="string">`align:&quot;tunnel_endpoint&quot;`</span></span><br><span class="line">	Key              <span class="keyword">uint8</span>      <span class="string">`align:&quot;key&quot;`</span>   <span class="comment">// </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这就是存储的具体内容。</p>
+<p>下面就需要具体分析 ipcache、lxc、filter 等代码了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">结构定义如下：</span><br><span class="line"></span><br><span class="line">&#96;&#96;&#96;golang</span><br><span class="line">&#x2F;&#x2F; 与 bpf&#x2F;lib&#x2F;common.h endpoint_key 结构体同步</span><br><span class="line">type EndpointKey struct &#123;</span><br><span class="line">	IP     types.IPv6 &#96;align:&quot;$union0&quot;&#96;</span><br><span class="line">	Family uint8      &#96;align:&quot;family&quot;&#96;  &#x2F;&#x2F; 地址类型 IPv4 和 IPv6</span><br><span class="line">	Key    uint8      &#96;align:&quot;key&quot;&#96;     &#x2F;&#x2F; 默认&#x3D;0</span><br><span class="line">	Pad2   uint16     &#96;align:&quot;pad5&quot;&#96;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F; 与 &lt;bpf&#x2F;lib&#x2F;common.h&gt; endpoint_info 结构体同步</span><br><span class="line">type EndpointInfo struct &#123;</span><br><span class="line">	IfIndex uint32 &#96;align:&quot;ifindex&quot;&#96;</span><br><span class="line">	Unused  uint16 &#96;align:&quot;unused&quot;&#96;</span><br><span class="line">	LxcID   uint16 &#96;align:&quot;lxc_id&quot;&#96;</span><br><span class="line">	Flags   uint32 &#96;align:&quot;flags&quot;&#96;</span><br><span class="line">	&#x2F;&#x2F; go alignment</span><br><span class="line">	_       uint32</span><br><span class="line">	MAC     MAC        &#96;align:&quot;mac&quot;&#96;</span><br><span class="line">	NodeMAC MAC        &#96;align:&quot;node_mac&quot;&#96;</span><br><span class="line">	Pad     pad4uint32 &#96;align:&quot;pad&quot;&#96;</span><br><span class="line">&#125;</span><br><span class="line">&#96;&#96;&#96;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">0 &#x3D; ReservedIdentityHealth (4) -&gt; </span><br><span class="line">1 &#x3D; ReservedEKSKubeDNS (103) -&gt; </span><br><span class="line">2 &#x3D; ReservedIdentityInit (5) -&gt; </span><br><span class="line">3 &#x3D; ReservedCiliumOperator (105) -&gt; </span><br><span class="line">4 &#x3D; github.com&#x2F;cilium&#x2F;cilium&#x2F;pkg&#x2F;datapath&#x2F;loader.templateSecurityID (2) -&gt; </span><br><span class="line">5 &#x3D; ReservedCoreDNS (104) -&gt; </span><br><span class="line">6 &#x3D; ReservedCiliumKVStore (101) -&gt; </span><br><span class="line">7 &#x3D; ReservedIdentityUnmanaged (3) -&gt; </span><br><span class="line">8 &#x3D; ReservedIdentityRemoteNode (6) -&gt; </span><br><span class="line">9 &#x3D; ReservedKubeDNS (102) -&gt; </span><br><span class="line">10 &#x3D; ReservedEKSCoreDNS (106) -&gt; </span><br><span class="line">11 &#x3D; ReservedCiliumEtcdOperator (107) -&gt; </span><br><span class="line">12 &#x3D; ReservedIdentityHost (1) -&gt; </span><br><span class="line">13 &#x3D; ReservedETCDOperator (100) -&gt; </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">0 &#x3D; &#123;uint8&#125; 110 6e</span><br><span class="line">1 &#x3D; &#123;uint8&#125; 176</span><br><span class="line">2 &#x3D; &#123;uint8&#125; 125</span><br><span class="line">3 &#x3D; &#123;uint8&#125; 78</span><br><span class="line">4 &#x3D; &#123;uint8&#125; 107</span><br><span class="line">5 &#x3D; &#123;uint8&#125; 229</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">demo Mac     6e:b0:7d:4e:6b:e5        10.11.255.104</span><br><span class="line">nginx Mac    1a:6d:c6:85:08:4d        </span><br><span class="line">enp0s3 Mac： 52:54:00:12:35:02</span><br><span class="line">docker0 Mac：02:42:ac:11:00:03</span><br><span class="line"></span><br><span class="line">docker run -d --name app1 --net cilium-net -l &quot;id&#x3D;app1&quot; cilium&#x2F;demo-httpd   10.11.71.148</span><br><span class="line">&#123;10.11.255.104  32327f7b4cf9  f00d::a0f:0:0:36a    32327f7b4cf9  6e:b0:7d:4e:6b:e5   cilium0@if19&#125;</span><br><span class="line">docker run -d --name app2 --net cilium-net -l &quot;id&#x3D;app2&quot; nginx   </span><br><span class="line">&#123;10.11.90.17  a94c744974c4  f00d::a0f:0:0:36a    a94c744974c4  1a:6d:c6:85:08:4d  cilium0@if49&#125;</span><br></pre></td></tr></table></figure>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/082d1ddf21d6/">https://jony-one.github.io/jony.github.io/082d1ddf21d6/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/096f87bd2448/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">Cilium 源码阅读：如何制定和执行 L3 策略</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#macVlan"><span class="toc-number">1.1.</span> <span class="toc-text">macVlan</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ipvlan"><span class="toc-number">1.2.</span> <span class="toc-text">ipvlan</span></a></li></ol></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

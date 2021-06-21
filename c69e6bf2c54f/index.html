@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>Netty 学习 - 初体验 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="Netty Netty Java 网络编程的代表，很多流行的网络框架都出自 Netty 之手。 Netty 主要抽象概念 Channel、Eventloop 和 ChannelFuture 主要 Netty 网络抽象的一个代表  Channel 相当于 Socket EventLoop 相当于逻辑层、线程、并发处理 ChannelFuture 异步回掉通知机制  Channel Channel 的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty 学习 - 初体验">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/c69e6bf2c54f/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="Netty Netty Java 网络编程的代表，很多流行的网络框架都出自 Netty 之手。 Netty 主要抽象概念 Channel、Eventloop 和 ChannelFuture 主要 Netty 网络抽象的一个代表  Channel 相当于 Socket EventLoop 相当于逻辑层、线程、并发处理 ChannelFuture 异步回掉通知机制  Channel Channel 的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-03-04T05:17:12.000Z">
+<meta property="article:modified_time" content="2021-06-21T11:30:48.426Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="microservices">
+<meta property="article:tag" content="Netty">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",microservices,Netty">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/c69e6bf2c54f/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Thu Mar 04 2021 13:17:12 GMT+0800">
+    <meta property="article:modified_time" content="Mon Jun 21 2021 19:30:48 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/c69e6bf2c54f/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-9.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">Netty 学习 - 初体验</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-03-04 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACa0lEQVR42u3aQW7DMAwEwPz/0+0HanVJRoodjE9BkMgaH0xixdfPV18vPDw8PDw8PDy8m/Fe8fXHQhffr39zteb6l/ne8PDw8M7wqlu8un3CyO/efHx4eHh4B3lX200+r9esFone3vDw8PDuz+sVgKv11002Hh4e3tN563+t10kadDw8PLyn8Oav9aRI5G33B7IWPDw8vJhXfbmf/Hz0fA8PDw8v4FWv6hhBfniWlIFoh3h4eHibefmLOAkO8oGqvL2uPgg8PDy83bz1sVYvtqhuNz8YK8e4eHh4eBt4k8g1f33nh17Vx1Soe3h4eHhv4s0b3OSWkzGFcruPh4eHd5CXRLEJqTksNR63wsPDwzvDywPZybBp3kBP7oiHh4d3hpePC0xun7fOSQM9CiPw8PDwNvDyEai8LZ4cj5UjDzw8PLyDvGocUB0gqBaG5O7NGBcPDw9vwOtFA4WbxW1xXkhGQ1d4eHh4Y948ROgFB71xgSgEwcPDw7sBrzpqkP9mMm71tsKAh4eH1+JVx6ryBrc3OjApD3h4eHi7efO4odde52FE9YHi4eHhneTN29lqY50UnvK/8PDw8A7y8uGApNlN1n/XcRoeHh7eZ3m9AYJeI94bMvinbODh4eFt5lWvHVvP2+j1Zzw8PLwzvMmLvhrpTiLawjEbHh4e3hFeXgzyJrvaKM8fGR4eHt55XjWWrbbCvRCkXGDw8PDwHsirHnRFEUPc1uPh4eE9hZe31+t/5d+Xwwg8PDy8Dbz80CuJX/NYobomHh4e3h141bD1zUdWxVD4nzKDh4eHt5n3fRceHh4eHh4eHt4Nrl/+3u05QL84YwAAAABJRU5ErkJggg==">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=Netty 学习 - 初体验&url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=Netty 学习 - 初体验&url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/&title=Netty 学习 - 初体验" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=Netty 学习 - 初体验&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/c69e6bf2c54f/&text=Netty 学习 - 初体验" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>Netty</h1>
+<p>Netty Java 网络编程的代表，很多流行的网络框架都出自 Netty 之手。</p>
+<h2 id="Netty-主要抽象概念">Netty 主要抽象概念</h2>
+<p>Channel、Eventloop 和 ChannelFuture 主要 Netty 网络抽象的一个代表</p>
+<ul>
+<li>Channel 相当于 Socket</li>
+<li>EventLoop 相当于逻辑层、线程、并发处理</li>
+<li>ChannelFuture 异步回掉通知机制</li>
+</ul>
+<h2 id="Channel">Channel</h2>
+<p>Channel 的主要操作有 bind、connect、read、write 与底层提供的网络编程原语相同。Netty 的 Channel 主要为了降低 Socket 类的复杂性。并且做了很多预定义类：</p>
+<ul>
+<li>EmbeddedChannel</li>
+<li>LocalServerChannel</li>
+<li>NioDatagramChannel</li>
+<li>NioSctpChannel</li>
+<li>NioSocketChannel</li>
+</ul>
+<h2 id="EventLoop">EventLoop</h2>
+<p>EventLoop 定义了 Netty 的核心抽象，用于处理连接的生命周期中所发生的事件。 Channel 、EventLoop、Thread 和 EventLoopGroup 之间的关系：</p>
+<ul>
+<li>一个 EventLoopGroup 包含一个或者多个 EventLoop</li>
+<li>一个 EventLoop 在它的生命周期内只和一个 Thread 绑定</li>
+<li>所有由 EventLoop 处理的 I/O 事件都将在它专有的 Thread 上被处理</li>
+<li>一个 Channel 在它的生命周期内只注册于一个 EventLoop</li>
+<li>一个 EventLoop 可能会被分配给一个或多个 Channel</li>
+</ul>
+<h2 id="ChannelFuture">ChannelFuture</h2>
+<p>因为 Netty 中所有的 I/O 操作都是异步的。即操作不会立即得到响应，需要一种在某个时间点或者事件发生之后获取结果的方法。所以 Netty 提供了 ChannelFuture 接口，其中 addListener 方法注册一个 ChannelFutureListener 类，在每个事件发生后进行回掉通知。</p>
+<h1>主力 ChannelHandler 和 ChannelPipeline</h1>
+<h2 id="ChannelHandler">ChannelHandler</h2>
+<p>应用开发者角度看 Netty 的主要组件时 ChannelHandler ，因为它充当了整个出站和入站处理逻辑的容器。ChannelHandler 可专门用于几乎任何类型的动作，<br>
+例如数据格式转换、异常处理等。通常一个应用程序有一个至多个 ChannelHandler。</p>
+<ul>
+<li>编码器和解码就是 ChannelHandler
+<ul>
+<li>入栈：将字节转换为一种对象，ByteToMessageDecoder。将对象转为字节，MessageToByteEncoder</li>
+<li>对于入栈事件，都会调用 channelRead 方法读取字节，再由这个方法调用 decode 进行解码操作，然后将解码的字节转发给 ChannelPipeline 的下一个 ChannelInboundHandler</li>
+<li>对于出栈事件，则相反。将消息转为字节，并将它们转发给下一个 ChannelOutboundHandler</li>
+</ul>
+</li>
+<li>ChannelInboundHandlerAdapter 自己扩展几个消息处理器，即处理已经被解码的消息
+<ul>
+<li>扩展自基类 SimpleChannelInboundHandler<T> 就是要处理消息的 Java 类型</li>
+<li>这种类型 ChannelHandler 种最重要的方法时 channelRead0（ChannelHandlerContext, T）</li>
+</ul>
+</li>
+</ul>
+<h2 id="ChannelPipeline">ChannelPipeline</h2>
+<p>ChannelPipeline 提供了 ChannelHandler 链的容器，定义了用于该链上传播事件流的 API 。</p>
+<h2 id="ChannelHandlerContext">ChannelHandlerContext</h2>
+<p>ChannelHandlerContext 代表 ChannelHandler 和 ChannelPipeline 之间的关联，当 ChannelHandler 添加到 ChannelPipeline 中是，都会创建ChannelHandlerContext。</p>
+<p>ChannelHandler 与 ChannelPipeline 的关系就如同流水线与操作员的关系，当资源（ChannelHandler）在流水线（ChannelPipeline）上流转时，每个操作员（ChannelHandler）会判断当前流程是否需要自己处理，当需要自己处理时，会触发指定的一个至多个动作对资源进行处理，处理完成之后继续在流水线上流转直至尾端出栈或者入栈。ChannelHandler 与 ChannelPipeline 通过 ChannelHandlerContext 解耦绑定。</p>
+<hr>
+<h1>生命周期</h1>
+<h2 id="Channel-生命周期">Channel 生命周期</h2>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ChannelUnregistered</td>
+<td style="text-align:center">Channel 已经被创建，还没有注册</td>
+</tr>
+<tr>
+<td>ChannelRegistered</td>
+<td style="text-align:center">Channel 已经被注册到 EventLoop</td>
+</tr>
+<tr>
+<td>ChannelActive</td>
+<td style="text-align:center">Channel处于活动状态（已经连接到远程节点）。可以接收和发送数据</td>
+</tr>
+<tr>
+<td>ChannelInactive</td>
+<td style="text-align:center">Channel 没有连接到远程节点</td>
+</tr>
+</tbody>
+</table>
+<p>生命周期轮转： ChannelRegistered -&gt; ChannelActive -&gt; ChannelInactive -&gt; ChannelUnregistered</p>
+<h2 id="ChannelHandler-生命周期">ChannelHandler 生命周期</h2>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>handlerAdded</td>
+<td style="text-align:center">当添加到 ChannelPipeline 中时被触发</td>
+</tr>
+<tr>
+<td>handlerRemoved</td>
+<td style="text-align:center">从 ChannelPipeline 中移除时触发</td>
+</tr>
+<tr>
+<td>exceptionCaught</td>
+<td style="text-align:center">处理过程中在 ChannelPipeline 中由错误产生时触发</td>
+</tr>
+</tbody>
+</table>
+<p>ChannelPromise 与 ChannelFuture 用于在操作完成时触发，有两种情况成功和失败。<br>
+其他子类：ChannelInboundHandler 和 ChannelOutboundHandler 只是在上述组件上面的扩展</p>
+<h2 id="ChannelPipeline-生命周期">ChannelPipeline 生命周期</h2>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>addFirst、addBefore、addAfter、addLast</td>
+<td style="text-align:center">将 ChannelHandler 添加到 ChannelPipeline 中</td>
+</tr>
+<tr>
+<td>remove</td>
+<td style="text-align:center">将 ChannelHandler 从 ChannelPipeline 中移除</td>
+</tr>
+<tr>
+<td>replace</td>
+<td style="text-align:center">将 ChannelPipeline 中的 ChannelHandler 替换为另一个</td>
+</tr>
+<tr>
+<td>get</td>
+<td style="text-align:center">通过类型或者名称返回 ChannelHandler</td>
+</tr>
+<tr>
+<td>context</td>
+<td style="text-align:center">返回和 ChannelHandler 绑定的 ChannelHandlerContext</td>
+</tr>
+<tr>
+<td>names</td>
+<td style="text-align:center">返回 ChannelPipeline 中所有 ChannelHandler 的名称</td>
+</tr>
+</tbody>
+</table>
+<p>ChannelPipeline 是一个 Channel 的入栈和出栈事件的 ChannelHandler 实例链。每一个新创建的 Channel 都会被分配一个新的 ChannelPipeline 且是永久性的无法切换和分离。<br>
+ChannelPipeline 保存了与 Channel 相关联的 ChannelHandler 并且可以根据需要动态的修改 ChannelHandler 。具有丰富的 API 可以被调用。以响应入站出战事件。</p>
+<h2 id="ChannelHandlerContext-生命周期">ChannelHandlerContext 生命周期</h2>
+<p>ChannelHandlerContext 的主要功能是管理它所关联的 ChannelHandler 和在同一个 ChannelPipeline 中的其他 ChannelHandler 之间的交互</p>
+<ul>
+<li>ChannelHandlerContext 和 ChannelHandler 之间的关联永远不会改变的，所以缓存对他的引用是安全的</li>
+</ul>
+<h1>总结</h1>
+<p>Netty 总体还是围绕这三大组件来操作：Channel、EventLoop、ChannelFuture。Channel 代表是事件源。EventLoop 代表执行线程，ChannelFuture 获取执行结果。<br>
+入站和出站事件围绕具体化的三大家族：ChannelHandler、ChannelPipeline、ChannelHandlerContext 来做具体的操作，ChannelHandler 代表了对数据的具体操作，ChannelPipeline 代表了操作链，ChanneHandlerContext 是在 Channel 创建的时候被创建出来贯穿了整个操作链。</p>
+<h1>Demo 案例测试</h1>
+<h2 id="客户端">客户端</h2>
+<p>EchoClientOutboundHandler.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ChannelHandler</span>.Sharable</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoClientOutboundHandler</span> <span class="keyword">extends</span> <span class="title">ChannelOutboundHandlerAdapter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;write事件触发了我&quot;</span>);</span><br><span class="line">        <span class="keyword">super</span>.write(ctx, msg, promise);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">flush</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;flush事件触发了我&quot;</span>);</span><br><span class="line">        <span class="keyword">super</span>.flush(ctx);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>EchoClientHandler.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoClientHandler</span> <span class="keyword">extends</span> <span class="title">SimpleChannelInboundHandler</span>&lt;<span class="title">ByteBuf</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> </span>&#123;</span><br><span class="line">        ctx.writeAndFlush(Unpooled.copiedBuffer(<span class="string">&quot;Netty Test!!!!!!!&quot;</span>, CharsetUtil.UTF_8));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">channelRead0</span><span class="params">(ChannelHandlerContext ctx, ByteBuf msg)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Client Received:&quot;</span> + msg.toString(CharsetUtil.UTF_8));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelReadComplete</span><span class="params">(ChannelHandlerContext ctx)</span> </span>&#123;</span><br><span class="line">       ctx.flush();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> </span>&#123;</span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>EchoClient.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoClient</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> String HOST = System.getProperty(<span class="string">&quot;host&quot;</span>, <span class="string">&quot;127.0.0.1&quot;</span>);</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> PORT = Integer.parseInt(System.getProperty(<span class="string">&quot;port&quot;</span>, <span class="string">&quot;8007&quot;</span>));</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        EventLoopGroup group = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Bootstrap b = <span class="keyword">new</span> Bootstrap();</span><br><span class="line">            b.group(group)</span><br><span class="line">             .channel(NioSocketChannel.class)</span><br><span class="line">             .option(ChannelOption.TCP_NODELAY, <span class="keyword">true</span>)</span><br><span class="line">             .handler(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                 <span class="meta">@Override</span></span><br><span class="line">                 <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                     ChannelPipeline p = ch.pipeline();</span><br><span class="line">                     <span class="comment">//p.addLast(new LoggingHandler(LogLevel.INFO));</span></span><br><span class="line">                     p.addLast(<span class="keyword">new</span> EchoClientOutboundHandler());</span><br><span class="line">                     p.addLast(<span class="keyword">new</span> EchoClientHandler());</span><br><span class="line">                 &#125;</span><br><span class="line">             &#125;);</span><br><span class="line">            ChannelFuture f = b.connect(HOST, PORT).sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123; group.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="服务端">服务端</h2>
+<p>EchoServerOutboundHandler.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ChannelHandler</span>.Sharable</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoServerOutboundHandler</span> <span class="keyword">extends</span> <span class="title">ChannelOutboundHandlerAdapter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;write 事件触发了我&quot;</span>);</span><br><span class="line">        <span class="keyword">super</span>.write(ctx, msg, promise);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">flush</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;flush 事件触发了我&quot;</span>);</span><br><span class="line">        <span class="keyword">super</span>.flush(ctx);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>EchoServerHandler.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Sharable</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoServerHandler</span> <span class="keyword">extends</span> <span class="title">ChannelInboundHandlerAdapter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelRead</span><span class="params">(ChannelHandlerContext ctx, Object msg)</span> </span>&#123;</span><br><span class="line">        ByteBuf byteBuf = (ByteBuf) msg;</span><br><span class="line">        System.out.println(<span class="string">&quot;Server receive:&quot;</span> + byteBuf.toString(CharsetUtil.UTF_8));</span><br><span class="line">        ctx.write(msg);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">channelReadComplete</span><span class="params">(ChannelHandlerContext ctx)</span> </span>&#123;</span><br><span class="line">        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> </span>&#123;</span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>EchoServer.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">EchoServer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> PORT = Integer.parseInt(System.getProperty(<span class="string">&quot;port&quot;</span>, <span class="string">&quot;8007&quot;</span>));</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        EventLoopGroup bossGroup = <span class="keyword">new</span> NioEventLoopGroup(<span class="number">1</span>);</span><br><span class="line">        EventLoopGroup workerGroup = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">        <span class="keyword">final</span> EchoServerHandler serverHandler = <span class="keyword">new</span> EchoServerHandler();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ServerBootstrap b = <span class="keyword">new</span> ServerBootstrap();</span><br><span class="line">            b.group(bossGroup, workerGroup)</span><br><span class="line">             .channel(NioServerSocketChannel.class)</span><br><span class="line">             .option(ChannelOption.SO_BACKLOG, <span class="number">100</span>)</span><br><span class="line">             .handler(<span class="keyword">new</span> LoggingHandler(LogLevel.INFO))</span><br><span class="line">             .childHandler(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                 <span class="meta">@Override</span></span><br><span class="line">                 <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                     ChannelPipeline p = ch.pipeline();</span><br><span class="line">                     p.addLast(<span class="keyword">new</span> EchoServerOutboundHandler());</span><br><span class="line">                     p.addLast(serverHandler);</span><br><span class="line">                 &#125;</span><br><span class="line">             &#125;);</span><br><span class="line">            ChannelFuture f = b.bind(PORT).sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            bossGroup.shutdownGracefully();</span><br><span class="line">            workerGroup.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<hr>
+<p>先运行服务端在运行客户端就可以体验到 ChannelHandler 出站入站的事件</p>
+<hr>
+<p>Client 输出</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">write事件触发了我</span><br><span class="line">flush事件触发了我</span><br><span class="line">Client Received:Netty Test!!!!!!!</span><br><span class="line">flush事件触发了我</span><br><span class="line">flush事件触发了我</span><br></pre></td></tr></table></figure>
+<hr>
+<p>Server 输出</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Server receive:Netty Test!!!!!!!</span><br><span class="line">write 事件触发了我</span><br><span class="line">write 事件触发了我</span><br><span class="line">flush 事件触发了我</span><br></pre></td></tr></table></figure>
+<h2 id="参考文档">参考文档</h2>
+<p><a target="_blank" rel="noopener" href="https://jeff-duan.github.io/downloads/resource/netty/Netty%20in%20Action-%E4%B8%AD%E6%96%87%E7%89%88.pdf">Netty 实战</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/c69e6bf2c54f/">https://jony-one.github.io/jony.github.io/c69e6bf2c54f/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty</a><a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/7ff3cbdf01d6/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/6ee15c371963/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">Netty</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Netty-%E4%B8%BB%E8%A6%81%E6%8A%BD%E8%B1%A1%E6%A6%82%E5%BF%B5"><span class="toc-number">1.1.</span> <span class="toc-text">Netty 主要抽象概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Channel"><span class="toc-number">1.2.</span> <span class="toc-text">Channel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#EventLoop"><span class="toc-number">1.3.</span> <span class="toc-text">EventLoop</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelFuture"><span class="toc-number">1.4.</span> <span class="toc-text">ChannelFuture</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">主力 ChannelHandler 和 ChannelPipeline</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelHandler"><span class="toc-number">2.1.</span> <span class="toc-text">ChannelHandler</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelPipeline"><span class="toc-number">2.2.</span> <span class="toc-text">ChannelPipeline</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelHandlerContext"><span class="toc-number">2.3.</span> <span class="toc-text">ChannelHandlerContext</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">生命周期</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Channel-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">3.1.</span> <span class="toc-text">Channel 生命周期</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelHandler-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">3.2.</span> <span class="toc-text">ChannelHandler 生命周期</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelPipeline-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">3.3.</span> <span class="toc-text">ChannelPipeline 生命周期</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ChannelHandlerContext-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">3.4.</span> <span class="toc-text">ChannelHandlerContext 生命周期</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">5.</span> <span class="toc-text">Demo 案例测试</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="toc-number">5.1.</span> <span class="toc-text">客户端</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF"><span class="toc-number">5.2.</span> <span class="toc-text">服务端</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="toc-number">5.3.</span> <span class="toc-text">参考文档</span></a></li></ol></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

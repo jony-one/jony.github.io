@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>4. C BPF 编程规范 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="C BPF 代码注意事项 用 C 语言编写 BPF 程序不同于用 C 语言做应用开发，有一些陷阱需要注意。本节列出了 二者的一些不同之处。 1. 所有函数都需要内联（inlined）、不支持函数调用（对于老版本 LLVM）、不支持共享库调用 BPF 不支持共享库（Shared libraries）。但是，可以将 常规 的库代码（library code）放到头文件中，然后在主程序中 include">
+<meta property="og:type" content="article">
+<meta property="og:title" content="4. C BPF 编程规范">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/3006e0a225f3/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="C BPF 代码注意事项 用 C 语言编写 BPF 程序不同于用 C 语言做应用开发，有一些陷阱需要注意。本节列出了 二者的一些不同之处。 1. 所有函数都需要内联（inlined）、不支持函数调用（对于老版本 LLVM）、不支持共享库调用 BPF 不支持共享库（Shared libraries）。但是，可以将 常规 的库代码（library code）放到头文件中，然后在主程序中 include">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-02-24T07:04:22.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.167Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/3006e0a225f3/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Wed Feb 24 2021 15:04:22 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/3006e0a225f3/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-3.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">4. C BPF 编程规范</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-24 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACYElEQVR42u3aMXLDMAwEQP//00mbJvIBICnZs6o8Y4viqiDpA14/X3298PDw8PDw8PDwHsZ7xdd/d7152OW9f79NfhnNDQ8PD+8Ibz7FnJE/vTk3PDw8vIO8ZMmuPjJZ+vNxou0EDw8P75G8ZGOYbxJ4eHh438qrspN78fDw8D6FVz3a5sFE79h9Q9aCh4eHF/PyItP5z0fre3h4eHgBr9zSNIhiew0E5Rni4eHhbebtDhR6ha5RZIyHh4e3mTf523+93OfTTV5ZMj4eHh7eGV6ylPcCgutpJcf0ZA7RvoeHh4e3lNc74CZbQnULWXW8xsPDw9vNmxxzVzVLrWq3wsPDwzvPm0QPUUxQ3Fp6WxEeHh7ebl71+JuX+fPC1fWLqJbB8PDw8E7y8vL89bTm4WwvDsbDw8O7i5d/rjYQ5GNO2rnw8PDwdvPmJaheYNELL5pNV3h4eHhLedV2gSQ4yBf0SemrEEbg4eHhLeVVw9k8FOhFvdUNqVzfw8PDw9vAWxsW5DHxqu0BDw8P7wyvCl5V8l8VT+Dh4eHdxSv/7Q+O1Ne/7I1fDiPw8PDwtvGqg04Ox822gKAIh4eHh3ee1ytrVSc6aTJ4M3M8PDy8zbzqVQ18k6nnrzuKmPHw8PA286rBa3KY7o2QNBBE7Qh4eHh4R3j5ZlBtGugVw/Jx8PDw8O7lJSX8XrFq8srKUS8eHh7e43n54ThvFKgWw/Dw8PA+l5e3n+YtCNVyGh4eHt5JXl70ypsAeiP3thY8PDy8k7z54j4qWQVhRCEWwcPDw9vM+74LDw8PDw8PDw/vAdcv4/vtOfVhfKcAAAAASUVORK5CYII=">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=4. C BPF 编程规范&url=https://jony-one.github.io/jony.github.io/3006e0a225f3/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=4. C BPF 编程规范&url=https://jony-one.github.io/jony.github.io/3006e0a225f3/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/3006e0a225f3/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/3006e0a225f3/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/3006e0a225f3/&title=4. C BPF 编程规范" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=4. C BPF 编程规范&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/3006e0a225f3/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/3006e0a225f3/&text=4. C BPF 编程规范" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h1>C BPF 代码注意事项</h1>
+<p><strong>用 C 语言编写 BPF 程序不同于用 C 语言做应用开发，有一些陷阱需要注意。本节列出了 二者的一些不同之处。</strong></p>
+<h2 id="1-所有函数都需要内联（inlined）、不支持函数调用（对于老版本-LLVM）、不支持共享库调用">1. 所有函数都需要内联（inlined）、不支持函数调用（对于老版本 LLVM）、不支持共享库调用</h2>
+<p>BPF 不支持共享库（Shared libraries）。但是，可以将 <strong>常规</strong> 的库代码（library code）放到头文件中，然后在主程序中 include 这些头文件，例如 Cilium 就大量使用了这种方式 （可以查看 bpf/lib/ 文件夹）。另外，也可以 include 其他的一些头文件，例如内核 或其他库中的头文件，复用其中的静态内联函数（static inline functions）或宏/定义（ macros / definitions）。</p>
+<p>内核 4.16+ 和 LLVM 6.0+ 之后已经支持 BPF-to-BPF 函数调用。对于任意给定的程序片段 ，在此之前的版本只能将全部代码编译和内联成一个扁平的 BPF 指令序列（a flat sequence of BPF instructions）。在这种情况下，最佳实践就是为每个库函数都使用一个 像 __inline 一样的注解（annotation ），下面的例子中会看到。推荐使用 always_inline，因为编译器可能会对只注解为 inline 的长函数仍然做 uninline 操 作。</p>
+<p>如果是后者，LLVM 会在 ELF 文件中生成一个重定位项（relocation entry），BPF ELF 加载器（例如 iproute2）无法解析这个重定位项，因此会产生一条错误，因为对加载器 来说只有 BPF maps 是合法的、能够处理的重定位项。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/bpf.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __section</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __section(NAME)                  \</span></span><br><span class="line">   __attribute__((section(NAME), used))</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __inline</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __inline                         \</span></span><br><span class="line">   <span class="keyword">inline</span> __attribute__((always_inline))</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> __inline <span class="keyword">int</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> XDP_DROP;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;prog&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">xdp_drop</span><span class="params">(struct xdp_md *ctx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> foo();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> __license[] __section(<span class="string">&quot;license&quot;</span>) = <span class="string">&quot;GPL&quot;</span>;</span><br></pre></td></tr></table></figure>
+<h2 id="2-多个程序可以放在同一-C-文件中的不同-section">2. 多个程序可以放在同一 C 文件中的不同 section</h2>
+<p><strong>BPF C 程序大量使用 section annotations</strong> 。一个 C 文件典型情况下会分为 3 个或更多个 section。BPF ELF 加载器利用这些名字来 <strong>提取</strong> 和 <strong>准备</strong> 相关的信息，以通过 bpf()系 统调用加载程序和 maps。例如，查找创建 map 所需的元数据和 BPF 程序的 license 信息时，iproute2 会分别使用 maps 和 license 作为默认的 section 名字。注意在程序 创建时 license section 也会加载到内核，如果程序使用的是兼容 GPL 的协议，这些信 息就可以启用那些 GPL-only 的辅助函数，例如 bpf_ktime_get_ns() 和 bpf_probe_read() 。</p>
+<p>其余的 section 名字都是和特定的 BPF 程序代码相关的，例如，下面经过修改之后的代码 包含两个程序 section：ingress 和 egress。这个非常简单的示例展示了不同 section （这里是 ingress 和 egress）之间可以共享 BPF map 和常规的静态内联辅助函数（ 例如 account_data()）。</p>
+<hr>
+<h2 id="示例程序">示例程序</h2>
+<p>这里将原来的 xdp-example.c 修改为 tc-example.c，然后用 tc 命令加载，attach 到 一个 netdevice 的 ingress 或 egress hook。该程序对传输的字节进行计数，存储在一 个名为 acc_map 的 BPF map 中，这个 map 有两个槽（slot），分别用于 ingress hook 和 egress hook 的流量统计。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/bpf.h&gt; // 标准 C  文件头</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/pkt_cls.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdint.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iproute2/bpf_elf.h&gt; // 特定 iproute2 头文件，有 struct bpf_elf_map 定义</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __section</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __section(NAME) __attribute__((section(NAME), used))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __inline</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __inline inline __attribute__((always_inline))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> lock_xadd</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lock_xadd(ptr,val) ((void) __sync_fetch_and_add(ptr, val))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> BPF_FUNC</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BPF_FUNC(NAME, ...) (*NAME)(__VA_ARGS__) = (void *)BPF_FUNC_##NAME</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 关联到上面的宏定义，宏展开后 BPF_FUNC_map_lookup_elem，该函数在 iap/linux/bpf.h 中有定义</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> &amp;<span class="title">BPF_FUNC</span><span class="params">(map_lookup_elem, <span class="keyword">void</span> *<span class="built_in">map</span>, <span class="keyword">const</span> <span class="keyword">void</span> *key)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// maps 放在 section 为了让加载器找到</span></span><br><span class="line"><span class="comment">// struct bpf_elf_map 是特定用于 iproute2 的</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_elf_map</span> <span class="title">acc_map</span> __<span class="title">section</span>(&quot;<span class="title">maps</span>&quot;) =</span> &#123; <span class="comment">// 每条记录定义一个该 map</span></span><br><span class="line">        .type           = BPF_MAP_TYPE_ARRAY,</span><br><span class="line">        .size_key       = <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>),</span><br><span class="line">        .size_value     = <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>),</span><br><span class="line">        .pinning        = PIN_GLOBAL_NS,<span class="comment">// map 固定为BPF伪文件系统。路径 /sys/fs/bpf/tc/globals/acc_map</span></span><br><span class="line">        .max_elem       = <span class="number">2</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> __inline <span class="keyword">int</span> <span class="title">account_data</span><span class="params">(struct __sk_buff *skb, <span class="keyword">uint32_t</span> dir)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">uint32_t</span> *bytes;</span><br><span class="line">        <span class="comment">// map 传递给辅助函数</span></span><br><span class="line">        bytes = map_lookup_elem(&amp;acc_map, &amp;dir);</span><br><span class="line">        <span class="keyword">if</span> (bytes)&#123;</span><br><span class="line">                <span class="comment">// 这里有锁，原子操作</span></span><br><span class="line">                lock_xadd(bytes, skb-&gt;len);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> TC_ACT_OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;ingress&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">tc_ingress</span><span class="params">(struct __sk_buff *skb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> account_data(skb, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;egress&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">tc_egress</span><span class="params">(struct __sk_buff *skb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> account_data(skb, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> __license[] __section(<span class="string">&quot;license&quot;</span>) = <span class="string">&quot;GPL&quot;</span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1>程序说明</h1>
+<p>这个例子还展示了其他一些很有用的东西，在开发过程中要注意。</p>
+<p>首先，include 了内核头文件、标准 C 头文件和一个特定的 iproute2 头文件 iproute2/bpf_elf.h，后者定义了struct bpf_elf_map。iproute2 有一个通用的 BPF ELF 加载器，因此 struct bpf_elf_map的定义对于 XDP 和 tc 类型的程序是完全一样的 。</p>
+<p>其次，程序中每条 struct bpf_elf_map 记录（entry）定义一个 map，这个记录包含了生成一 个（ingress 和 egress 程序需要用到的）map 所需的全部信息（例如 key/value 大 小）。这个结构体的定义必须放在 maps section，这样加载器才能找到它。可以用这个 结构体声明很多名字不同的变量，但这些声明前面必须加上 __section(“maps”) 注解。</p>
+<p>结构体 struct bpf_elf_map 是特定于 iproute2 的。不同的 BPF ELF 加载器有不同 的格式，例如，内核源码树中的 libbpf（主要是 perf 在用）就有一个不同的规范 （结构体定义）。iproute2 保证 struct bpf_elf_map 的后向兼容性。Cilium 采用的 是 iproute2 模型。</p>
+<p>另外，这个例子还展示了 BPF 辅助函数是如何映射到 C 代码以及如何被使用的。这里首先定义了 一个宏 BPF_FUNC，接受一个函数名 NAME 以及其他的任意参数。然后用这个宏声明了一 个 NAME 为 map_lookup_elem 的函数，经过宏展开后会变成 BPF_FUNC_map_lookup_elem 枚举值，后者以辅助函数的形式定义在 uapi/linux/bpf.h 。当随后这个程序被加载到内核时，校验器会检查传入的参数是否是期望的类型，如果是， 就将辅助函数调用重新指向（re-points）某个真正的函数调用。另外， map_lookup_elem() 还展示了 map 是如何传递给 BPF 辅助函数的。这里，maps section 中的 &amp;acc_map 作为第一个参数传递给 map_lookup_elem()。</p>
+<p>由于程序中定义的数组 map （array map）是全局的，因此计数时需要使用原子操作，这里 是使用了 lock_xadd()。LLVM 将 __sync_fetch_and_add() 作为一个内置函数映射到 BPF 原子加指令，即 BPF_STX | <a target="_blank" rel="noopener" href="http://lists.infradead.org/pipermail/linux-arm-kernel/2015-November/384376.html">BPF_XADD</a> | BPF_W（for word sizes）。</p>
+<p>另外，struct bpf_elf_map 中的 .pinning 字段初始化为 PIN_GLOBAL_NS，这意味 着 tc 会将这个 map 作为一个节点（node）钉（pin）到 BPF 伪文件系统。默认情况下， 这个变量 acc_map 将被钉到 /sys/fs/bpf/tc/globals/acc_map。</p>
+<ul>
+<li>如果指定的是 <strong><code>PIN_GLOBAL_NS</code></strong>，那 map 会被放到 <code>/sys/fs/bpf/tc/globals/</code>。 <strong>globals</strong> 是一个跨对象文件的全局命名空间。</li>
+<li>如果指定的是 <strong><code>PIN_OBJECT_NS</code></strong>，tc 将会为对象文件创建一个它的**<code>本地目录</code>**（local to the object file）。例如，只要指定了 PIN_OBJECT_NS，不同的 C 文件都可以像上面一样定义各自的 acc_map。在这种情况下，这个 map 会在不同 BPF 程序之间共享。</li>
+<li><strong><code>PIN_NONE</code></strong> 表示 map 不会作为节点（node）钉（pin）到 BPF 文件系统，因此当 tc 退 出时这个 map 就无法从用户空间访问了。同时，这还意味着独立的 tc 命令会创建出独 立的 map 实例，因此后执行的 tc 命令无法用这个 map 名字找到之前被钉住的 map。 在路径 /sys/fs/bpf/tc/globals/acc_map 中，map 名是 acc_map。</li>
+</ul>
+<p>因此，在加载 ingress 程序时，tc 会先查找这个 map 在 BPF 文件系统中是否存在，不 存在就创建一个。创建成功后，map 会被钉（pin）到 BPF 文件系统，因此当 egress 程序通过 tc 加载之后，它就会发现这个 map 存在了，接下来会复用这个 map 而不是再创建一个新的。在 map 存在的情况下，加载器还会确保 map 的属性（properties）是匹配的， 例如 key/value 大小等等。</p>
+<p>就像 tc 可以从同一 map 获取数据一样，第三方应用也可以用 bpf 系统调用中的 BPF_OBJ_GET 命令创建一个指向某个 map 实例的新文件描述符，然后用这个描述 符来查看/更新/删除 map 中的数据。</p>
+<p>通过 clang 编译和 iproute2 加载：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ clang -O2 -Wall -target bpf -c tc-example.c -o tc-example.o</span><br><span class="line"></span><br><span class="line">$ tc qdisc add dev ens32 clsact</span><br><span class="line">$ tc filter add dev ens32 ingress bpf da obj tc-example.o sec ingress</span><br><span class="line">$ tc filter add dev ens32 egress bpf da obj tc-example.o sec egress</span><br><span class="line"></span><br><span class="line">$ tc filter show dev ens32 ingress</span><br><span class="line">filter protocol all pref 49152 bpf</span><br><span class="line">filter protocol all pref 49152 bpf handle 0x1 tc-example.o:[ingress] direct-action id 1 tag c5f7825e5dac396f</span><br><span class="line"></span><br><span class="line">$ tc filter show dev ens32 egress</span><br><span class="line">filter protocol all pref 49152 bpf</span><br><span class="line">filter protocol all pref 49152 bpf handle 0x1 tc-example.o:[egress] direct-action id 2 tag b2fd5adc0f262714</span><br><span class="line"></span><br><span class="line">$ mount | grep bpf</span><br><span class="line">sysfs on /sys/fs/bpf <span class="built_in">type</span> sysfs (rw,nosuid,nodev,noexec,relatime,seclabel)</span><br><span class="line">bpf on /sys/fs/bpf <span class="built_in">type</span> bpf (rw,relatime,mode=0700)</span><br><span class="line"></span><br><span class="line">$ tree /sys/fs/bpf/</span><br><span class="line">/sys/fs/bpf/</span><br><span class="line">+-- ip -&gt; /sys/fs/bpf/tc/</span><br><span class="line">+-- tc</span><br><span class="line">|   +-- globals</span><br><span class="line">|       +-- acc_map</span><br><span class="line">+-- xdp -&gt; /sys/fs/bpf/tc/</span><br><span class="line"></span><br><span class="line">4 directories, 1 file</span><br></pre></td></tr></table></figure>
+<p>以上步骤指向完成后，当包经过 ens32 设备时，BPF map 中的计数器就会递增。</p>
+<hr>
+<h1>3. 不允许全局变量</h1>
+<p>由于在第1点已经提到的原因，BPF不能像普通C程序中经常使用的那样具有全局变量。<br>
+但是，我们有间接的方式实现全局变量的效果：BPF 程序可以使用一个 <strong><code>BPF_MAP_TYPE_PERCPU_ARRAY</code></strong> 类型的、只有一个槽（slot）的、可以存放任意类型数据（ arbitrary value size）的 BPF map。这可以实现全局变量的效果原因是，<strong>BPF 程序在执行期间不会被内核抢占</strong>，因此可以用单个 map entry 作为一个暂存缓冲区(scratch buffer)使用，存储临时数据，例如扩展 BPF 栈的限制（512 字节）。这种方式在尾调用中也是可以工作的，因为尾调用执行期间也不会被抢占。</p>
+<p>另外，如果要在不同次 BPF 程序执行之间保持状态，使用常规的 BPF map 就可以了。</p>
+<hr>
+<h1>4. 不支持常量字符串或数组（const strings or arrays）</h1>
+<p>BPF C 程序中不允许定义 const 字符串或其他数组，原因和第 1 点及第 3 点一样，即 ，ELF 文件中生成的重定位项（relocation entries）会被加载器拒绝，因为不符合加 载器的 ABI（加载器也无法修复这些重定位项，因为这需要对已经编译好的 BPF 序列进行 大范围的重写）。</p>
+<p>将来 LLVM 可能会检测这种情况，提前将错误抛给用户。现在可以用下面的辅助函数来作为 短期解决方式（work around）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">BPF_FUNC</span><span class="params">(trace_printk, <span class="keyword">const</span> <span class="keyword">char</span> *fmt, <span class="keyword">int</span> fmt_size, ...)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> printk</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> printk(fmt, ...)                                      \</span></span><br><span class="line">    (&#123;                                                         \</span><br><span class="line">        <span class="keyword">char</span> ____fmt[] = fmt;                                  \</span><br><span class="line">        trace_printk(____fmt, <span class="keyword">sizeof</span>(____fmt), ##__VA_ARGS__); \</span><br><span class="line">    &#125;)</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>有了上面的定义，程序就可以自然地使用这个宏，例如 <code>printk(&quot;skb len:%u\n&quot;, skb-&gt;len);</code>。 输出会写到 trace pipe，用 tc exec bpf dbg 命令可以获取这些打印的消息。</p>
+<p>不过，使用 trace_printk() 辅助函数也有一些不足，因此不建议在生产环境使用。每次 调用这个辅助函数时，常量字符串（例如 “skb len:%u\n”）都需要加载到 BPF 栈，但这 个辅助函数最多只能接受 5 个参数，因此使用这个函数输出信息时只能传递三个参数。</p>
+<p>因此，虽然这个辅助函数对快速调试很有用，但（对于<strong>网络程序</strong>）还是推荐使用 <strong><code>skb_event_output()</code></strong> 或 <strong><code>xdp_event_output()</code></strong> 辅助函数。这两个函数接受从 BPF 程序 传递自定义的结构体类型参数，然后将参数以及可选的包数据（packet sample）放到 perf event ring buffer。这些函数通过一个无锁的、内存映射的、 per-CPU 的 <strong><code>perf ring buffer</code></strong> 传递数据，因此要远快于 <code>trace_printk()</code>。例如，Cilium monitor 利用这些辅助函数实现了一个调试框架，以及 在发现违反网络策略时发出通知等功能。</p>
+<hr>
+<h1>5. 使用 LLVM 内置的函数做内存操作</h1>
+<p>因为 BPF 程序除了调用 BPF 辅助函数之外无法执行任何函数调用，因此常规的库代码必须 实现为内联函数。另外，LLVM 也提供了一些可以用于特定大小（这里是 n）的内置函数 ，这些函数永远都会被内联：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> memset</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> memcpy</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> memmove</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>LLVM 后端中的某个问题会导致内置的 memcmp() 有某些边界场景下无法内联，因此在这 个问题解决之前不推荐使用这个函数。</p>
+<h1>6. （目前还）不支持循环</h1>
+<p>内核中的 BPF 校验器除了对其他的控制流进行图验证（graph validation）之外，还会对 所有程序路径执行深度优先搜索（depth first search），确保其中不存在循环。这样做的 目的是确保程序永远会结束。</p>
+<p>但可以使用 <code>#pragma unroll</code> 指令实现<strong>常量的、不超过一定上限的<code>循环</code></strong>。下面是一个例子 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> unroll</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; IPV6_MAX_HEADERS; i++) &#123;</span><br><span class="line">        <span class="keyword">switch</span> (nh) &#123;</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_NONE:</span><br><span class="line">            <span class="keyword">return</span> DROP_INVALID_EXTHDR;</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_FRAGMENT:</span><br><span class="line">            <span class="keyword">return</span> DROP_FRAG_NOSUPPORT;</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_HOP:</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_ROUTING:</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_AUTH:</span><br><span class="line">        <span class="keyword">case</span> NEXTHDR_DEST:</span><br><span class="line">            <span class="keyword">if</span> (skb_load_bytes(skb, l3_off + len, &amp;opthdr, <span class="keyword">sizeof</span>(opthdr)) &lt; <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">return</span> DROP_INVALID;</span><br><span class="line"></span><br><span class="line">            nh = opthdr.nexthdr;</span><br><span class="line">            <span class="keyword">if</span> (nh == NEXTHDR_AUTH)</span><br><span class="line">                len += ipv6_authlen(&amp;opthdr);</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                len += ipv6_optlen(&amp;opthdr);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            *nexthdr = nh;</span><br><span class="line">            <span class="keyword">return</span> len;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>另外一种实现循环的方式是：用一个 BPF_MAP_TYPE_PERCPU_ARRAY map 作为本地 scratch space（暂存存储空间），然后用尾调用的方式调用函数自身。虽然这种方式更加动态，但目前 最大只支持 32 层嵌套调用。</p>
+<p>将来 BPF 可能会提供一些更加原生、但有一定限制的循环。</p>
+<hr>
+<h2 id="7-尾调用的用途">7. 尾调用的用途</h2>
+<p>尾调用能够从一个程序调到另一个程序，提供了在运行时（runtime）原子地改变程序行 为的灵活性。为了选择要跳转到哪个程序，尾调用使用了程序数组 map（ <code>BPF_MAP_TYPE_PROG_ARRAY</code>），将 map 及其索引（index）传递给将要跳转到的程序。跳 转动作一旦完成，就没有办法返回到原来的程序；但如果给定的 map 索引中没有程序（无 法跳转），执行会继续在原来的程序中执行。</p>
+<p>例如，可以用尾调用实现解析器的不同阶段，可以在运行时（runtime）更新这些阶段的新 解析特性。</p>
+<p>尾调用的另一个用处是事件通知，例如，Cilium 可以在运行时（runtime）开启或关闭<strong>丢包</strong>的通知（packet drop notifications），其中对 skb_event_output() 的调用就是发生在被尾调用的程序中。因此，在常规情况下，执行的永远是从上到下的路径（ fall-through path），当某个程序被加入到相关的 map 索引之后，程序就会解析元数据， 触发向用户空间守护进程（user space daemon）发送事件通知。</p>
+<p>程序数组 map 非常灵活， map 中每个索引对应的程序可以实现各自的动作（actions）。 例如，连接到 tc 或 XDP 的 root 程序执行初始的、跳转到程序数组 map 中索引为 0 的程序，然后执行流量抽样（traffic sampling），然后跳转到索引为 1 的程序，在那个 程序中应用防火墙策略，然后就可以决定是丢包还是将其送到索引为 2 的程序中继续处理，在后者中，可能可能会被 mangle 然后再次通过某个接口发送出去。在程序数据 map 之中是可以随意跳转的。当达到尾调用的最大调用深度时，内核最终会执行 fall-through path。</p>
+<p>一个使用尾调用的最小程序示例：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">[...]</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __stringify</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __stringify(X)   #X</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __section</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __section(NAME) __attribute__((section(NAME), used))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __section_tail</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __section_tail(ID, KEY) __section(__stringify(ID) <span class="meta-string">&quot;/&quot;</span> __stringify(KEY))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> BPF_FUNC</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> BPF_FUNC(NAME, ...) (*NAME)(__VA_ARGS__) = (void *)BPF_FUNC_##NAME</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BPF_JMP_MAP_ID   1</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">BPF_FUNC</span><span class="params">(tail_call, struct __sk_buff *skb, <span class="keyword">void</span> *<span class="built_in">map</span>, <span class="keyword">uint32_t</span> index)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_elf_map</span> <span class="title">jmp_map</span> __<span class="title">section</span>(&quot;<span class="title">maps</span>&quot;) =</span> &#123;</span><br><span class="line">    .type           = BPF_MAP_TYPE_PROG_ARRAY,</span><br><span class="line">    .id             = BPF_JMP_MAP_ID,</span><br><span class="line">    .size_key       = <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>),</span><br><span class="line">    .size_value     = <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>),</span><br><span class="line">    .pinning        = PIN_GLOBAL_NS,</span><br><span class="line">    .max_elem       = <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">__section_tail(JMP_MAP_ID, <span class="number">0</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">looper</span><span class="params">(struct __sk_buff *skb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(<span class="string">&quot;skb cb: %u\n&quot;</span>, skb-&gt;cb[<span class="number">0</span>]++);</span><br><span class="line">    tail_call(skb, &amp;jmp_map, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> TC_ACT_OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;prog&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">entry</span><span class="params">(struct __sk_buff *skb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    skb-&gt;cb[<span class="number">0</span>] = <span class="number">0</span>;</span><br><span class="line">    tail_call(skb, &amp;jmp_map, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> TC_ACT_OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> __license[] __section(<span class="string">&quot;license&quot;</span>) = <span class="string">&quot;GPL&quot;</span>;</span><br></pre></td></tr></table></figure>
+<p>加载这个示例程序时，tc 会创建其中的程序数组（jmp_map 变量），并将其固定到 BPF 文件系统中全局命名空间下名为的 jump_map 位置。而且，iproute2 中的 BPF ELF 加载器也会识别出标记为 __section_tail() 的 section。 jmp_map 的 id 字段会 跟__section_tail() 中的 id 字段（这里初始化为常量 <code>JMP_MAP_ID</code>）做匹配，因此程 序能加载到用户指定的索引（位置），在上面的例子中这个索引是 0。然后，所有的尾调用 section 将会被 iproute2 加载器处理，关联到 map 中。这个机制并不是 tc 特有的， iproute2 支持的其他 BPF 程序类型（例如 XDP、lwt）也适用。</p>
+<p>生成的 elf 包含 section headers，描述 map id 和 map 内的条目：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ llvm-objdump -S --no-show-raw-insn prog_array.o | less</span><br><span class="line">prog_array.o:   file format ELF64-BPF</span><br><span class="line"></span><br><span class="line">Disassembly of section 1/0:</span><br><span class="line">looper:</span><br><span class="line">       0:       r6 = r1</span><br><span class="line">       1:       r2 = *(u32 *)(r6 + 48)</span><br><span class="line">       2:       r1 = r2</span><br><span class="line">       3:       r1 += 1</span><br><span class="line">       4:       *(u32 *)(r6 + 48) = r1</span><br><span class="line">       5:       r1 = 0 ll</span><br><span class="line">       7:       call -1</span><br><span class="line">       8:       r1 = r6</span><br><span class="line">       9:       r2 = 0 ll</span><br><span class="line">      11:       r3 = 0</span><br><span class="line">      12:       call 12</span><br><span class="line">      13:       r0 = 0</span><br><span class="line">      14:       <span class="built_in">exit</span></span><br><span class="line">Disassembly of section prog:</span><br><span class="line">entry:</span><br><span class="line">       0:       r2 = 0</span><br><span class="line">       1:       *(u32 *)(r1 + 48) = r2</span><br><span class="line">       2:       r2 = 0 ll</span><br><span class="line">       4:       r3 = 0</span><br><span class="line">       5:       call 12</span><br><span class="line">       6:       r0 = 0</span><br><span class="line">       7:       exi</span><br></pre></td></tr></table></figure>
+<p>在这个例子中，section 1/0 表示 looper() 函数位于 map 1 中，在 map 1 内的 位置是 0。</p>
+<p>被固定住的 map 可以被用户空间应用（例如 Cilium daemon）读取，也可以被 tc 本身读取，因为 tc 可能会用新的程序替换原来的程序，此时可能需要读取 map 内容。 更新是原子的。</p>
+<p><strong>tc 执行尾调用 map 更新（tail call map updates）的例子：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ tc <span class="built_in">exec</span> bpf graft m:globals/jmp_map key 0 obj new.o sec foo</span><br></pre></td></tr></table></figure>
+<p>如果 iproute2 需要更新被固定的程序数组，可以使用 graft 命令。上面的 例子中指向的是 globals/jmp_map，那 tc 将会用一个新程序更新位于 index/key 为 0 的 map， 这个新程序位于对象文件 new.o 中的 foo section。</p>
+<hr>
+<h2 id="8-BPF-最大栈空间-512-字节">8. BPF 最大栈空间 512 字节</h2>
+<p>BPF 程序的最大栈空间是 512 字节，在使用 C 语言实现 BPF 程序时需要考虑到这一点。 但正如在第 3 点中提到的，可以通过一个只有一条记录（single entry）的 BPF_MAP_TYPE_PERCPU_ARRAY map 来绕过这限制，增大 （暂存空间）scratch buffer 空间。</p>
+<hr>
+<h2 id="9-尝试使用-BPF-内联汇编">9. 尝试使用 BPF 内联汇编</h2>
+<p>LLVM 6.0 以后支持 BPF 内联汇编，在某些场景下可能会用到。下面这个玩具示例程序（ 没有实际意义）展示了一个 64 位原子加操作。<br>
+由于文档不足，要获取更多信息和例子，目前可能只能参考 LLVM 源码中的 <code>lib/Target/BPF/BPFInstrInfo.td</code> 以及 <code>test/CodeGen/BPF/</code>。测试代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/bpf.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __section</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> __section(NAME)                  \</span></span><br><span class="line">   __attribute__((section(NAME), used))</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">__section(<span class="string">&quot;prog&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">xdp_test</span><span class="params">(struct xdp_md *ctx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    __u64 a = <span class="number">2</span>, b = <span class="number">3</span>, *c = &amp;a;</span><br><span class="line">    <span class="comment">/* just a toy xadd example to show the syntax */</span></span><br><span class="line">    <span class="function"><span class="keyword">asm</span> <span class="title">volatile</span><span class="params">(<span class="string">&quot;lock *(u64 *)(%0+0) += %1&quot;</span> : <span class="string">&quot;=r&quot;</span>(c) : <span class="string">&quot;r&quot;</span>(b), <span class="string">&quot;0&quot;</span>(c))</span></span>;</span><br><span class="line">    <span class="keyword">return</span> a;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> __license[] __section(<span class="string">&quot;license&quot;</span>) = <span class="string">&quot;GPL&quot;</span>;</span><br></pre></td></tr></table></figure>
+<p>上面的程序会被编译成下面的 BPF 指令序列：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Verifier analysis:</span><br><span class="line"></span><br><span class="line">0: (b7) r1 = 2</span><br><span class="line">1: (7b) *(u64 *)(r10 -8) = r1</span><br><span class="line">2: (b7) r1 = 3</span><br><span class="line">3: (bf) r2 = r10</span><br><span class="line">4: (07) r2 += -8</span><br><span class="line">5: (db) lock *(u64 *)(r2 +0) += r1</span><br><span class="line">6: (79) r0 = *(u64 *)(r10 -8)</span><br><span class="line">7: (95) <span class="built_in">exit</span></span><br><span class="line">processed 8 insns (<span class="built_in">limit</span> 131072), stack depth 8</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="10-用-pragma-pack-禁止结构体填充（struct-padding）">10. 用 #pragma pack 禁止结构体填充（struct padding）</h2>
+<p>现代编译器默认会对数据结构进行 <strong>内存对齐（align）</strong>，以实现更加高效的访问。结构 体成员会被对齐到数倍于其自身大小的内存位置，不足的部分会进行填充（padding），因 此结构体最终的大小可能会比预想中大。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">called_info</span> &#123;</span></span><br><span class="line">    u64 start;  <span class="comment">// 8-byte</span></span><br><span class="line">    u64 end;    <span class="comment">// 8-byte</span></span><br><span class="line">    u32 sector; <span class="comment">// 4-byte</span></span><br><span class="line">&#125;; <span class="comment">// size of 20-byte ?</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;size of %d-byte\n&quot;</span>, <span class="keyword">sizeof</span>(struct called_info)); <span class="comment">// size of 24-byte</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 实际编译后的 struct called_info</span></span><br><span class="line"><span class="comment">// 0x0(0)                   0x8(8)</span></span><br><span class="line"><span class="comment">//  ↓________________________↓</span></span><br><span class="line"><span class="comment">//  |        start (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |         end  (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |  sector(4) |  PADDING  | &lt;= 地址 8 位对齐</span></span><br><span class="line"><span class="comment">//  |____________|___________|     会填充 4-byte.</span></span><br></pre></td></tr></table></figure>
+<p>内核中的 BPF 校验器会检查栈边界（stack boundary），BPF 程序不会访问栈边界外的空 间，或者是未初始化的栈空间。如果<strong>将结构体中<code>填充</code>出来的内存区域作为一个 map 值进行访问</strong>，那调用 bpf_prog_load() 时就会报 invalid indirect read from stack 错误。</p>
+<p>示例代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">called_info</span> &#123;</span></span><br><span class="line">    u64 start;</span><br><span class="line">    u64 end;</span><br><span class="line">    u32 sector;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">struct bpf_map_def <span class="title">SEC</span><span class="params">(<span class="string">&quot;maps&quot;</span>)</span> called_info_map </span>= &#123;</span><br><span class="line">    .type = BPF_MAP_TYPE_HASH,</span><br><span class="line">    .key_size = <span class="keyword">sizeof</span>(<span class="keyword">long</span>),</span><br><span class="line">    .value_size = <span class="keyword">sizeof</span>(struct called_info),</span><br><span class="line">    .max_entries = <span class="number">4096</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">SEC(<span class="string">&quot;kprobe/submit_bio&quot;</span>)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">submit_bio_entry</span><span class="params">(struct pt_regs *ctx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> fmt[] = <span class="string">&quot;submit_bio(bio=0x%lx) called: %llu\n&quot;</span>;</span><br><span class="line">    u64 start_time = bpf_ktime_get_ns();</span><br><span class="line">    <span class="keyword">long</span> bio_ptr = PT_REGS_PARM1(ctx);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">called_info</span> <span class="title">called_info</span> =</span> &#123;</span><br><span class="line">            .start = start_time,</span><br><span class="line">            .end = <span class="number">0</span>,</span><br><span class="line">            .bi_sector = <span class="number">0</span></span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    bpf_map_update_elem(&amp;called_info_map, &amp;bio_ptr, &amp;called_info, BPF_ANY);</span><br><span class="line">    bpf_trace_printk(fmt, <span class="keyword">sizeof</span>(fmt), bio_ptr, start_time);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// On bpf_load_program</span></span><br><span class="line">bpf_load_program() err=<span class="number">13</span></span><br><span class="line"><span class="number">0</span>: (bf) r6 = r1</span><br><span class="line">...</span><br><span class="line"><span class="number">19</span>: (b7) r1 = <span class="number">0</span></span><br><span class="line"><span class="number">20</span>: (<span class="number">7b</span>) *(u64 *)(r10 <span class="number">-72</span>) = r1</span><br><span class="line"><span class="number">21</span>: (<span class="number">7b</span>) *(u64 *)(r10 <span class="number">-80</span>) = r7</span><br><span class="line"><span class="number">22</span>: (<span class="number">63</span>) *(u32 *)(r10 <span class="number">-64</span>) = r1</span><br><span class="line">...</span><br><span class="line"><span class="number">30</span>: (<span class="number">85</span>) call bpf_map_update_elem#<span class="number">2</span></span><br><span class="line">invalid indirect read from <span class="built_in">stack</span> off <span class="number">-80</span>+<span class="number">20</span> size <span class="number">24</span></span><br></pre></td></tr></table></figure>
+<p>在 bpf_prog_load() 中会调用 BPF 校验器的 bpf_check() 函数，后者会调用 check_func_arg() -&gt; check_stack_boundary() 来检查栈边界。从上面的错误可以看出 ，struct called_info 被编译成 24 字节，错误信息提示从 +20 位置读取数据是“非 法的间接读取”（invalid indirect read）。从我们更前面给出的内存布局图中可以看到， 地址 0x14(20) 是填充（PADDING ）开始的地方。这里再次画出内存布局图以方便对比：</p>
+<pre><code>// Actual compiled composition of struct called_info
+// 0x10(16)    0x14(20)    0x18(24)
+//  ↓____________↓___________↓
+//  |  sector(4) |  PADDING  | &lt;= address aligned to 8
+//  |____________|___________|     with 4-byte PADDING.
+</code></pre>
+<p><code>check_stack_boundary()</code> 会遍历每一个从开始指针出发的 <code>access_size (24)</code> 字节， 确保它们位于栈边界内部，并且栈内的所有元素都初始化了。因此填充的部分是不允许使用 的，所以报了 “invalid indirect read from stack” 错误。要避免这种错误，需要将结 构体中的填充去掉。这是通过 <code>#pragma pack(n)</code> 原语实现的：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> pack(4)</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">called_info</span> &#123;</span></span><br><span class="line">    u64 start;  <span class="comment">// 8-byte</span></span><br><span class="line">    u64 end;    <span class="comment">// 8-byte</span></span><br><span class="line">    u32 sector; <span class="comment">// 4-byte</span></span><br><span class="line">&#125;; <span class="comment">// size of 20-byte ?</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;size of %d-byte\n&quot;</span>, <span class="keyword">sizeof</span>(struct called_info)); <span class="comment">// size of 20-byte</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Actual compiled composition of packed struct called_info</span></span><br><span class="line"><span class="comment">// 0x0(0)                   0x8(8)</span></span><br><span class="line"><span class="comment">//  ↓________________________↓</span></span><br><span class="line"><span class="comment">//  |        start (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |         end  (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |  sector(4) |             &lt;= address aligned to 4</span></span><br><span class="line"><span class="comment">//  |____________|                 with no PADDING.</span></span><br></pre></td></tr></table></figure>
+<p>在 struct called_info 前面加上 #pragma pack(4) 之后，编译器会以 4 字节为单位 进行对齐。上面的图可以看到，这个结构体现在已经变成 20 字节大小，没有填充了。</p>
+<p>但是，去掉填充也是有弊端的。例如，编译器产生的代码没有原来优化的好。去掉填充之后 ，处理器访问结构体时触发的是非对齐访问（unaligned access），可能会导致性能下降。 并且，某些架构上的校验器可能会直接拒绝非对齐访问。</p>
+<p>不过，我们也有一种方式可以避免产生自动填充：手动填充。我们简单地在结构体中加入一 个 <code>u32 pad </code>成员来显式填充，这样既<strong>避免了自动填充</strong>的问题，又<strong>解决了非对齐访问</strong>的问题。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">called_info</span> &#123;</span></span><br><span class="line">    u64 start;  <span class="comment">// 8-byte</span></span><br><span class="line">    u64 end;    <span class="comment">// 8-byte</span></span><br><span class="line">    u32 sector; <span class="comment">// 4-byte</span></span><br><span class="line">    u32 pad;    <span class="comment">// 4-byte</span></span><br><span class="line">&#125;; <span class="comment">// size of 24-byte ?</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;size of %d-byte\n&quot;</span>, <span class="keyword">sizeof</span>(struct called_info)); <span class="comment">// size of 24-byte</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Actual compiled composition of struct called_info with explicit padding</span></span><br><span class="line"><span class="comment">// 0x0(0)                   0x8(8)</span></span><br><span class="line"><span class="comment">//  ↓________________________↓</span></span><br><span class="line"><span class="comment">//  |        start (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |         end  (8)       |</span></span><br><span class="line"><span class="comment">//  |________________________|</span></span><br><span class="line"><span class="comment">//  |  sector(4) |  pad (4)  | &lt;= address aligned to 8</span></span><br><span class="line"><span class="comment">//  |____________|___________|     with explicit PADDING.</span></span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="11-通过未验证的引用（invalidated-references）访问包数据">11. 通过未验证的引用（invalidated references）访问包数据</h2>
+<p>某些网络相关的 BPF 辅助函数，例如 <code>bpf_skb_store_bytes</code>，可能会修改包的大小。校验器无法跟踪这类改动，因此它会将所有之前对包数据的引用都视为过期的（未验证的） 。因此，为避免程序被校验器拒绝，在访问数据之外需要先更新相应的引用。<br>
+来看下面的例子：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">iphdr</span> *<span class="title">ip4</span> =</span> (struct iphdr *) skb-&gt;data + ETH_HLEN;</span><br><span class="line"></span><br><span class="line">skb_store_bytes(skb, l3_off + offsetof(struct iphdr, saddr), &amp;new_saddr, <span class="number">4</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (ip4-&gt;protocol == IPPROTO_TCP) &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>校验器会拒绝这段代码，因为它认为在 <code>skb_store_bytes</code> 执行之后，引用 <code>ip4-&gt;protocol</code> 是未验证的（invalidated）:</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">R1=pkt_end(id=<span class="number">0</span>,off=<span class="number">0</span>,imm=<span class="number">0</span>) R2=pkt(id=<span class="number">0</span>,off=<span class="number">34</span>,r=<span class="number">34</span>,imm=<span class="number">0</span>) R3=inv0</span><br><span class="line">R6=ctx(id=<span class="number">0</span>,off=<span class="number">0</span>,imm=<span class="number">0</span>) R7=inv(id=<span class="number">0</span>,umax_value=<span class="number">4294967295</span>,var_off=(<span class="number">0x0</span>; <span class="number">0xffffffff</span>))</span><br><span class="line">R8=inv4294967162 R9=pkt(id=<span class="number">0</span>,off=<span class="number">0</span>,r=<span class="number">34</span>,imm=<span class="number">0</span>) R10=fp0,call_<span class="number">-1</span></span><br><span class="line">...</span><br><span class="line"><span class="number">18</span>: (<span class="number">85</span>) call bpf_skb_store_bytes#<span class="number">9</span></span><br><span class="line"><span class="number">19</span>: (<span class="number">7b</span>) *(u64 *)(r10 <span class="number">-56</span>) = r7</span><br><span class="line">R0=inv(id=<span class="number">0</span>) R6=ctx(id=<span class="number">0</span>,off=<span class="number">0</span>,imm=<span class="number">0</span>) R7=inv(id=<span class="number">0</span>,umax_value=<span class="number">2</span>,var_off=(<span class="number">0x0</span>; <span class="number">0x3</span>))</span><br><span class="line">R8=inv4294967162 R9=inv(id=<span class="number">0</span>) R10=fp0,call_<span class="number">-1</span> fp<span class="number">-48</span>=mmmm???? fp<span class="number">-56</span>=mmmmmmmm</span><br><span class="line"><span class="number">21</span>: (<span class="number">61</span>) r1 = *(u32 *)(r9 +<span class="number">23</span>)</span><br><span class="line">R9 invalid mem access &#x27;inv&#x27;</span><br></pre></td></tr></table></figure>
+<p>要解决这个问题，必须更新（重新计算） ip4 的地址：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">iphdr</span> *<span class="title">ip4</span> =</span> (struct iphdr *) skb-&gt;data + ETH_HLEN;</span><br><span class="line"></span><br><span class="line">skb_store_bytes(skb, l3_off + offsetof(struct iphdr, saddr), &amp;new_saddr, <span class="number">4</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">ip4 = (struct iphdr *) skb-&gt;data + ETH_HLEN;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (ip4-&gt;protocol == IPPROTO_TCP) &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1>文档连接</h1>
+<p><a target="_blank" rel="noopener" href="https://www.dazhuanlan.com/2019/12/10/5dee76b007da0/">Linux BPF 3.2、BPF and XDP Reference Guide</a><br>
+<a target="_blank" rel="noopener" href="http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction">[译] Cilium：BPF 和 XDP 参考指南（2019）</a><br>
+<a target="_blank" rel="noopener" href="https://docs.cilium.io/en/stable/bpf/">BPF and XDP Reference Guide</a><br>
+<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/bpf-helpers.7.html">BPF 辅助函数</a><br>
+<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man2/bpf.2.html">BPF man 文档</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/3006e0a225f3/">https://jony-one.github.io/jony.github.io/3006e0a225f3/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/ada1626fa032/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/e83139ad9bf1/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">C BPF 代码注意事项</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%89%80%E6%9C%89%E5%87%BD%E6%95%B0%E9%83%BD%E9%9C%80%E8%A6%81%E5%86%85%E8%81%94%EF%BC%88inlined%EF%BC%89%E3%80%81%E4%B8%8D%E6%94%AF%E6%8C%81%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8%EF%BC%88%E5%AF%B9%E4%BA%8E%E8%80%81%E7%89%88%E6%9C%AC-LLVM%EF%BC%89%E3%80%81%E4%B8%8D%E6%94%AF%E6%8C%81%E5%85%B1%E4%BA%AB%E5%BA%93%E8%B0%83%E7%94%A8"><span class="toc-number">1.1.</span> <span class="toc-text">1. 所有函数都需要内联（inlined）、不支持函数调用（对于老版本 LLVM）、不支持共享库调用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%A4%9A%E4%B8%AA%E7%A8%8B%E5%BA%8F%E5%8F%AF%E4%BB%A5%E6%94%BE%E5%9C%A8%E5%90%8C%E4%B8%80-C-%E6%96%87%E4%BB%B6%E4%B8%AD%E7%9A%84%E4%B8%8D%E5%90%8C-section"><span class="toc-number">1.2.</span> <span class="toc-text">2. 多个程序可以放在同一 C 文件中的不同 section</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A4%BA%E4%BE%8B%E7%A8%8B%E5%BA%8F"><span class="toc-number">1.3.</span> <span class="toc-text">示例程序</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">程序说明</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">3. 不允许全局变量</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">4.</span> <span class="toc-text">4. 不支持常量字符串或数组（const strings or arrays）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">5.</span> <span class="toc-text">5. 使用 LLVM 内置的函数做内存操作</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">6.</span> <span class="toc-text">6. （目前还）不支持循环</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E5%B0%BE%E8%B0%83%E7%94%A8%E7%9A%84%E7%94%A8%E9%80%94"><span class="toc-number">6.1.</span> <span class="toc-text">7. 尾调用的用途</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-BPF-%E6%9C%80%E5%A4%A7%E6%A0%88%E7%A9%BA%E9%97%B4-512-%E5%AD%97%E8%8A%82"><span class="toc-number">6.2.</span> <span class="toc-text">8. BPF 最大栈空间 512 字节</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8-BPF-%E5%86%85%E8%81%94%E6%B1%87%E7%BC%96"><span class="toc-number">6.3.</span> <span class="toc-text">9. 尝试使用 BPF 内联汇编</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E7%94%A8-pragma-pack-%E7%A6%81%E6%AD%A2%E7%BB%93%E6%9E%84%E4%BD%93%E5%A1%AB%E5%85%85%EF%BC%88struct-padding%EF%BC%89"><span class="toc-number">6.4.</span> <span class="toc-text">10. 用 #pragma pack 禁止结构体填充（struct padding）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-%E9%80%9A%E8%BF%87%E6%9C%AA%E9%AA%8C%E8%AF%81%E7%9A%84%E5%BC%95%E7%94%A8%EF%BC%88invalidated-references%EF%BC%89%E8%AE%BF%E9%97%AE%E5%8C%85%E6%95%B0%E6%8D%AE"><span class="toc-number">6.5.</span> <span class="toc-text">11. 通过未验证的引用（invalidated references）访问包数据</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">7.</span> <span class="toc-text">文档连接</span></a></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

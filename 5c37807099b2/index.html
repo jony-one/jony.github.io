@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>gRPC 学习 - 简单使用 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="gRPC 简单使用 Protobuf Protobuf 是谷歌推出的一宗轻便高效的结构和的数据存储格式，把结构和的数据序列化。常用以存储数据、作为网络通信的数据载体。具有多种编程语言的 API、跨平台和可扩展的特性。比 JSON 、XML 更小解析速度更快、更易于上手。 命令使用 写一个 Proto 文件 1234567891011121314151617syntax &#x3D; &quot;p">
+<meta property="og:type" content="article">
+<meta property="og:title" content="gRPC 学习 - 简单使用">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/5c37807099b2/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="gRPC 简单使用 Protobuf Protobuf 是谷歌推出的一宗轻便高效的结构和的数据存储格式，把结构和的数据序列化。常用以存储数据、作为网络通信的数据载体。具有多种编程语言的 API、跨平台和可扩展的特性。比 JSON 、XML 更小解析速度更快、更易于上手。 命令使用 写一个 Proto 文件 1234567891011121314151617syntax &#x3D; &quot;p">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-03-10T02:36:01.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.191Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="microservices">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",microservices">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/5c37807099b2/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Wed Mar 10 2021 10:36:01 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/5c37807099b2/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-1.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">gRPC 学习 - 简单使用</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-03-10 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACaElEQVR42u3aSXLDMAwEQP//08kD4mUGlCjF1TqlUibN1gGEATx+vvp54OHh4eHh4eHh3Yz3iJ8nG734//vPvNo5+WRyNjw8PLw9vNkR/x4iOVwR4mdnw8PDw9vIS0J2+5V56E/2ia4TPDw8vBvz8qA/S9Dx8PDwvon3ftWHYkGwAx4eHt5/4eUpco5v0+6Lay14eHh4MS8P7vv/3trfw8PDwwt47dMG8bZI0TbJnuyJh4eHdzIvD8TtdZIn0LOLAQ8PD+9a3uxn//tAnx83Ke8m++Ph4eFdy5sdIl+VDA3MisV4eHh4e3izBLe9YI4d8Cqq1Hh4eHiH8lYCdP6C8n1mI1l4eHh4O3n14rK40Kbv+WUznIzAw8PDW+blX5NQ87GA2dqkDYaHh4e3n9e2u2YjAsmLa8vBeHh4ePt5eTF3VsJok++8fIyHh4e3k7c+PJq8pqhxVb4mPDw8vKt4+YHaoD8bNchbX3UxAg8PD+8gXltQyIsISVFjZdzq4HsPDw8PbyHnnI0LzNLrWSo/HB3Aw8PDO4i3MjI1S6yPHdvCw8PDu4qXl01nowZ5Cn7AKjw8PLxLee1AwGzsYNYSK1JqPDw8vNN4ect/1u5aGTLI98TDw8M7m7dS0m0bZkuHzi8bPDw8vJN5s0A/w+QJekvCw8PD289rRweSUkKbKM/2wcPDw7uWl5dl84LsUZdKUerFw8PDuyUvb27lja58tw8vGg8PD+/GvDbxXbls8p8BeHh4eDt5edMrKVjkSfP7z+Sr8PDw8Hby2mJrO0aQXCcrVwseHh7eTt73PXh4eHh4eHh4eDd4fgEvBV3JDkCQpQAAAABJRU5ErkJggg==">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=gRPC 学习 - 简单使用&url=https://jony-one.github.io/jony.github.io/5c37807099b2/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=gRPC 学习 - 简单使用&url=https://jony-one.github.io/jony.github.io/5c37807099b2/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/5c37807099b2/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/5c37807099b2/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/5c37807099b2/&title=gRPC 学习 - 简单使用" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=gRPC 学习 - 简单使用&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/5c37807099b2/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/5c37807099b2/&text=gRPC 学习 - 简单使用" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <h2 id="gRPC-简单使用">gRPC 简单使用</h2>
+<h3 id="Protobuf">Protobuf</h3>
+<p>Protobuf 是谷歌推出的一宗轻便高效的结构和的数据存储格式，把结构和的数据序列化。常用以存储数据、作为网络通信的数据载体。具有多种编程语言的 API、跨平台和可扩展的特性。比 JSON 、XML 更小解析速度更快、更易于上手。</p>
+<h3 id="命令使用">命令使用</h3>
+<p>写一个 Proto 文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">syntax &#x3D; &quot;proto3&quot;;</span><br><span class="line"></span><br><span class="line">option java_package &#x3D; &quot;com.example.grpc&quot;;</span><br><span class="line">option java_multiple_files &#x3D; true;</span><br><span class="line">option java_outer_classname &#x3D; &quot;HelloWorldProto&quot;;</span><br><span class="line"></span><br><span class="line">message Greeting &#123;</span><br><span class="line">    string name &#x3D; 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message HelloResp &#123;</span><br><span class="line">    string reply &#x3D; 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">service HelloWorld &#123;</span><br><span class="line">    rpc sayFuchGrpc (Greeting) returns (HelloResp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>生成 protobuf 类，但是并没有生成 RPC 调用关系，所以还需要继续使用一个命令</p>
+<p><code>protoc --java_out=./ --proto_path=./ helloworld.proto</code></p>
+<p>生成 RPC 类，需要使用 <a target="_blank" rel="noopener" href="https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/">protoc-gen-grpc-java</a> ，可以下载适合自己得版本，这里使用得是：<code>protoc-gen-grpc-java-1.36.0-windows-x86_64.exe</code><br>
+使用命令：</p>
+<p><code>protoc --plugin=protoc-gen-grpc-java=&quot;D:/Software/protobuf-3.12.4/protoc-gen-grpc-java-1.36.0-windows-x86_64.exe&quot; --grpc-java_out=./src hello_world.proto</code></p>
+<p>将生成：<em>HelloWorldGrpc.java</em> 文件</p>
+<p>服务端编写代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.grpc.Server;</span><br><span class="line"><span class="keyword">import</span> io.grpc.ServerBuilder;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GreeterServer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> port = <span class="number">50051</span>;</span><br><span class="line">        Server server = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            server = ServerBuilder.forPort(port)</span><br><span class="line">                    .addService(<span class="keyword">new</span> GreeterImpl())</span><br><span class="line">                    .build()</span><br><span class="line">                    .start();</span><br><span class="line">            server.awaitTermination();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">            server.shutdown();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;server shutdown&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>客户端编写代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.grpc.ManagedChannel;</span><br><span class="line"><span class="keyword">import</span> io.grpc.ManagedChannelBuilder;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GreeterClient</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        ManagedChannel channel = ManagedChannelBuilder.forAddress(<span class="string">&quot;127.0.0.1&quot;</span>,<span class="number">50051</span>).usePlaintext().build();</span><br><span class="line">        HelloServiceGrpc.HelloServiceBlockingStub stub  = HelloServiceGrpc.newBlockingStub(channel);</span><br><span class="line">        HelloResponse response = stub.sayFuchGrp(HelloRequest.newBuilder().setName(<span class="string">&quot;123456 up shan play triger&quot;</span>).build());</span><br><span class="line">        System.out.println(response.toString());</span><br><span class="line">        channel.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>成功输出：<br>
+reply: “123456 up shan play triger:hahahhhaa”</p>
+<h2 id="原理剖析">原理剖析</h2>
+<p>Client 与 Server ，均通过 Netty Channel 作为数据通信，序列化、反序列化使用 Protobuf，每个请求都将被封装成 HTTP2 得 Stream，在生命周期内，Channel 得应用应该属于长连接，并不需要重复去创建，直至关闭 Channel。目的就是为了<strong>连接复用</strong>提高效率。</p>
+<p><em>默认情况下 ServerProvider 使用 Netty 作为服务提供者,即使用 NettyServerBuilder</em></p>
+<p>跟踪代码将会看到 <code>io.grpc.netty.NettyServer</code></p>
+<ol>
+<li>创建 <code>ServerBootstrap</code> ,设定 <code>BossGroup</code> 和 <code>WorkerGroup</code> 线程池</li>
+<li>添加 <code>ChannelFactory</code> ,使用的是 <code>new ReflectiveChannelFactory&lt;&gt;(epollServerChannelType())</code></li>
+<li>注册 <code>childHandler</code> ，用来处理客户端连接中的请求帧</li>
+<li>bind 到指定的 <code>port</code> ，即内部初始化 <code>ServerSocketChannel</code> 等，开始侦听和接受客户端连接</li>
+<li><code>BossGroup</code> 中的线程用于 accept 客户端连接，并转发给 <code>WorkerGroup</code> 中的线程，如果没有指定就会默认 static 共享对下，线程池大小默认为 1</li>
+<li><code>workerGroup</code> 中的特定线程用于初始化客户端连接，初始化 <code>pipeline</code> 和 <code>handler</code> ，并将其注册到 <code>worker</code> 线程的 <code>selector</code> 上。每个 <code>worker</code> 线程独占一个 <code>selector</code>。默认大小 coreSize*2</li>
+<li><code>selector</code> 上发送读写时间后，获取时间所属的连接句柄，然后指定 <code>handler（inbound）</code> ，同时拆分 <code>package</code> 。<code>handler</code> 执行完毕后，数据写入有 <code>outbound handler</code> 处理通过连接发出。</li>
+<li><code>channelType</code>：默认为 <code>NioServerSocketChannel</code>。</li>
+<li><code>followControlWindow</code>：流量控制的窗口大小，单位：字节，默认值为 1M HTTP2 中的 <code>Flow Control</code> 特性</li>
+<li><code>maxConcurrentCallPerConnection</code>：每个 connection 允许的最大并发请求书，默认值为 Integer.MAX_VALUE；标识此连接的未响应的 streams 个数的上限</li>
+<li><code>maxMessageSize</code> ：每次调用允许发送的最大数据量，默认为 100M</li>
+<li><code>maxHeaderListSize</code>：每次调用允许发送的 header 的最大条数据，默认 8192</li>
+<li><code>protocolNegotiator</code>：协议协商工具类，用于支持 SSL、TLS 工具类。默认情况下：PlaintextProtocolNegotiator 使用的仍然是 HTTP 协议</li>
+</ol>
+<p><em><strong>注意：每个 <code>worker</code> 线程上的数据请求时是队列形式</strong></em><br>
+<em><strong>Channel 是 NIO 的基本构造，代表的一个实体，可以看作传入或者传出的数据载体。因此可以被打开或者关闭、连接或者断开</strong></em></p>
+<h2 id="addService-的作用">addService 的作用</h2>
+<p>addService 使用的是代理模式，每个 <code>gRPC</code> 生成的 Service 都有 <code>bindService</code> 方法。<code>gRPC</code>  通过硬编码的方式遍历这个 <code>service</code> 列表，将每个方法的调用过程都与<code>“被代理实例”</code>绑定。<code>bingService</code> 方法的最终目的是创建一个 <code>ServerServiceDefinition</code> 对象，内部创建了一个 <code>Map</code> ，<code>KEY</code> 就是 <code>Service</code>  方法的全名 <code>&#123;package&#125;.&#123;service&#125;.&#123;method&#125;</code>，value 就是这个方法的 gRPC 封装类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> HelloServiceImplBase serviceImpl;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> methodId;</span><br><span class="line"></span><br><span class="line">    MethodHandlers(HelloServiceImplBase serviceImpl, <span class="keyword">int</span> methodId) &#123;</span><br><span class="line">      <span class="keyword">this</span>.serviceImpl = serviceImpl;</span><br><span class="line">      <span class="keyword">this</span>.methodId = methodId;</span><br><span class="line">    &#125;</span><br><span class="line">...</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">invoke</span><span class="params">(Req request, io.grpc.stub.StreamObserver&lt;Resp&gt; responseObserver)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">switch</span> (methodId) &#123;</span><br><span class="line">        <span class="keyword">case</span> METHODID_SAY_FUCH_GRP:</span><br><span class="line">          serviceImpl.sayFuchGrp((HelloRequest) request,</span><br><span class="line">              (io.grpc.stub.StreamObserver&lt;HelloResponse&gt;) responseObserver);</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> AssertionError();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span> <span class="keyword">public</span> <span class="keyword">final</span> io.grpc.<span class="function">ServerServiceDefinition <span class="title">bindService</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())</span><br><span class="line">          .addMethod(</span><br><span class="line">            getSayFuchGrpMethod(),</span><br><span class="line">            io.grpc.stub.ServerCalls.asyncUnaryCall(</span><br><span class="line">              <span class="keyword">new</span> MethodHandlers&lt;</span><br><span class="line">                HelloRequest,</span><br><span class="line">                HelloResponse&gt;(</span><br><span class="line">                  <span class="keyword">this</span>, METHODID_SAY_FUCH_GRP)))</span><br><span class="line">          .build();</span><br><span class="line">    &#125;</span><br><span class="line">```    </span><br><span class="line"></span><br><span class="line">`addService` 方法可以添加多个 `Service`，代表 Netty Server 可以添加多个 `Service`。`addService` 会把 service 保存在内部的一个 map 中，key 为 serviceName ，value 就是上述 bindService 生成的对象。</span><br><span class="line"></span><br><span class="line">既然对象都已经生成存储到 Map 中，那么 `gRPC` 服务端是如何解析 RPC 过程的？client 在调用的收会将调用的 `service` 名词 + `method` 信息保存在一个 `GRPC 保留` 的 header 中，那么服务端在接收到 stream （PS：h2c 中每个 stream 相当于一个请求）之后，通过获取这个特定 Header 信息，就可以知道这个 stream 要调用的相应的方法，然后就使用到来上诉的 service ，然后找个相应的方法，直接代理调用。然后返回执行结果。</span><br><span class="line"></span><br><span class="line">## Client 使用</span><br><span class="line"></span><br><span class="line">Client 使用 `ManagedChannelBuilder` 的 `provider`机制来决定创建哪种类型的客户端的 `Channel`（`NettyChannelBuilder` 和 `OkHttpChannelBuilder`）。</span><br><span class="line"></span><br><span class="line">通常情况下 Channel 是可以复用的，所以为了提高 Client 端的并发能力，我们可以创建连接池即多个 `ManagedChannel`，每次请求时选择其中一个 Channel 即可。</span><br><span class="line"></span><br><span class="line">`ManagedChannel` 是客户端最核心的 <span class="class"><span class="keyword">class</span>，代表这逻辑上的 `<span class="title">channel</span>`，底层持有一个物理的 `<span class="title">transport</span>`，并负责维护当检测到其处于 `<span class="title">terminated</span>` 的时候会重新创建。</span></span><br><span class="line"><span class="class"></span></span><br><span class="line"><span class="class">每个 <span class="title">Client</span> <span class="title">SDK</span> 都生成了 2 中 <span class="title">stub</span>：<span class="title">BlockingStub</span> 和 <span class="title">FutureStub</span>； <span class="title">BlockingStub</span> 内部仍然使用的是 <span class="title">Future</span> 机制，只是内部封装了**阻塞等待**的过程：</span></span><br><span class="line"><span class="class"></span></span><br><span class="line"><span class="class">```<span class="title">java</span></span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">static</span> &lt;<span class="title">ReqT</span>, <span class="title">RespT</span>&gt; <span class="title">RespT</span> <span class="title">blockingUnaryCall</span>(</span></span><br><span class="line"><span class="class">      <span class="title">Channel</span> <span class="title">channel</span>, <span class="title">MethodDescriptor</span>&lt;<span class="title">ReqT</span>, <span class="title">RespT</span>&gt; <span class="title">method</span>, <span class="title">CallOptions</span> <span class="title">callOptions</span>, <span class="title">ReqT</span> <span class="title">req</span>) </span>&#123;</span><br><span class="line">    ThreadlessExecutor executor = <span class="keyword">new</span> ThreadlessExecutor();</span><br><span class="line">    <span class="keyword">boolean</span> interrupt = <span class="keyword">false</span>;</span><br><span class="line">    ClientCall&lt;ReqT, RespT&gt; call = channel.newCall(method,</span><br><span class="line">        callOptions.withOption(ClientCalls.STUB_TYPE_OPTION, StubType.BLOCKING)</span><br><span class="line">            .withExecutor(executor));</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      ListenableFuture&lt;RespT&gt; responseFuture = futureUnaryCall(call, req);</span><br><span class="line">		...</span><br><span class="line">      <span class="keyword">return</span> getUnchecked(responseFuture);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> &lt;V&gt; <span class="function">V <span class="title">getUnchecked</span><span class="params">(Future&lt;V&gt; future)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> future.get();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      Thread.currentThread().interrupt();</span><br><span class="line">      <span class="keyword">throw</span> Status.CANCELLED</span><br><span class="line">          .withDescription(<span class="string">&quot;Thread interrupted&quot;</span>)</span><br><span class="line">          .withCause(e)</span><br><span class="line">          .asRuntimeException();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (ExecutionException e) &#123;</span><br><span class="line">      <span class="keyword">throw</span> toStatusRuntimeException(e.getCause());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>目前每次发起请求时都是通过 <code>channel</code> 创建新的 <code>Stub</code>，这会导致创建大量的 <code>Stub</code> 对象，当然 <code>Stub</code> 对象也是可以复用的，直到 Stub 状态异常。每个 Stub 都配置 deadline 时间，那么如果此 Stub 被使用的时长超过这个阈值，将会抛出 <em><strong>io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED</strong></em> 异常。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> io.grpc.<span class="function">Channel <span class="title">resetChannel</span><span class="params">(io.grpc.ManagedChannel channel)</span></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (channel.isShutdown() || channel.isTerminated())&#123;</span><br><span class="line">    <span class="keyword">return</span> ManagedChannelBuilder.forAddress(HOST, PORT).usePlaintext(<span class="keyword">true</span>).build();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> channel;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">      ManagedChannel channel = ManagedChannelBuilder.forAddress(<span class="string">&quot;127.0.0.1&quot;</span>,<span class="number">50051</span>).usePlaintext().build();</span><br><span class="line">      resetChannel(channel)</span><br><span class="line">      HelloServiceGrpc.HelloServiceBlockingStub stub  = HelloServiceGrpc.newBlockingStub(channel);</span><br><span class="line">      HelloResponse response = stub.sayFuchGrp(HelloRequest.newBuilder().setName(<span class="string">&quot;123456 up shan play triger&quot;</span>).build());</span><br><span class="line">      System.out.println(response.toString());</span><br><span class="line">      channel.shutdown();</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>对于批量调用的场景，建议使用 FutureStub，对于普通的业务类型 RPC，我们使用 BlockingStub。每个 RPC 方法的调用一开始都会创建一个 <strong>ClientCall</strong>，其内部封装了调用的方法、配置等。此后将会创建 Stream 对象，每个 Stream 对象都持有唯一的 streamId，它是 Transport 用于区分 Response 的凭证。最终所有调用的参数都封装在 Stream 中。在大多数的 RPC 调用中，请求参数报文都是分多次发送，所以 ClientCall 在创建时就已经绑定线程，所以数据发送总是哦他难过一个线程进行的所以不会有乱序的现象。同样在等待 Response 时，底层的 Netty 将会对 Response 报文进行解包，并根据 streamId <strong>分拣</strong> Response，同时唤醒相应的 ClientCalls 阻塞。</p>
+<p><strong>注意：如果出现网络异常将会重置 Channel、StreamId</strong></p>
+<h1>参考文档</h1>
+<p><a target="_blank" rel="noopener" href="http://www.iigrowing.cn/grpc_shi_shen_me.html">gRPC 是什么</a><br>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/u010129119/article/details/79361949#1-%E7%AE%80%E4%BB%8B">HTTP/2 协议规范</a><br>
+<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/e57ca4fec26f">HTTP2 详解</a><br>
+<a target="_blank" rel="noopener" href="https://segmentfault.com/u/yongshun/articles">永顺 专栏</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/5c37807099b2/">https://jony-one.github.io/jony.github.io/5c37807099b2/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/gRPC/">gRPC</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/42c8ed10bc76/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/2dbdbd1b5bc0/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#gRPC-%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8"><span class="toc-number">1.</span> <span class="toc-text">gRPC 简单使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Protobuf"><span class="toc-number">1.1.</span> <span class="toc-text">Protobuf</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8"><span class="toc-number">1.2.</span> <span class="toc-text">命令使用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">原理剖析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#addService-%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">3.</span> <span class="toc-text">addService 的作用</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number"></span> <span class="toc-text">参考文档</span></a></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

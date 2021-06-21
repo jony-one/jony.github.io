@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>6. Program_Types | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="XDP 负责宿主机到宿主机之间的负载均衡，进入的流量会被统一拦截和转发 TC 负责宿主机到容器之间的流量转发，进入、发出的流量会被统一拦截和转发  术语 per-packet cost ：每包成本，处理一个网络数据包的成本 hairpinning：发卡模式。hairpin skb: sock_buffer Spectre:幽灵漏洞 CPUMAP:BPF CPUMAP映射类型 BPF Flow Di">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6. Program_Types">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/4b2ecddadcc3/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="XDP 负责宿主机到宿主机之间的负载均衡，进入的流量会被统一拦截和转发 TC 负责宿主机到容器之间的流量转发，进入、发出的流量会被统一拦截和转发  术语 per-packet cost ：每包成本，处理一个网络数据包的成本 hairpinning：发卡模式。hairpin skb: sock_buffer Spectre:幽灵漏洞 CPUMAP:BPF CPUMAP映射类型 BPF Flow Di">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-02-24T11:38:33.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.168Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/4b2ecddadcc3/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Wed Feb 24 2021 19:38:33 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/4b2ecddadcc3/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-19.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">6. Program_Types</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-24 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACYklEQVR42u3aQVLEMAwEwP3/p+HKAbIzcuKErfaJgix2hypLSHp9ffR64eHh4eHh4eHhPYz3itdfn3qz2eFnf/40eTI6Gx4eHt4WXnvEhJocZWXfP18KHh4e3kZecmUnBz2+7tsXV4cTPDw8vEfyZtd3m6Dj4eHhfRLv+MkVTL4vHh4e3hN4bWqbX/152p2n43h4eHj38vIm0/6vt/b38PDw8AJeu9piRFtiaJtkv+yIh4eHdzEvv4jbcLLS6GrPg4eHh7eTt/Jv/3Gja6UE3H4HDw8PbyevHUV9latterWvqYh7eHh4eCfx8rbTypbHv229pIuHh4d3F6/dZlaoTaizcSs8PDy8PbyW0RYXkmCQPJ/8SfDw8PD28PJm/+y4eWBYKXbg4eHhPYE3u7hnqXZbqqhHB/Dw8PAu4+Ul1Bl7/UVEu+Ph4eFdzMsT5aj5FCfWbfHitKErPDw8vJN4K9f0SqmiLUwMZ8rw8PDwTuUlyfRXufLfkI9eFeEEDw8P72LeSmBInm8baevhAQ8PD28Pr232z46VXPGz8gQeHh7eXbxZg79NspNSxSzA4OHh4e3nJcFgVkqYIfN2Gh4eHt5dvNkAwUq7azZk8ObkeHh4eBfzZs2ttmF2wqHzYIOHh4d3Ma8tts5S7XaMdWWgAQ8PD28PLy/C1sOjCw2w9pXh4eHh7eflF3Temlp5fbMUHA8PD++ZvLa13x60bYbh4eHh/Rdem/i2Q1SzdhoeHh7eTl6S8s4KFjkpDy14eHh49/LaYmuS+LbhpA0tRRkXDw8P71Te5y08PDw8PDw8PLwHrG8B4e05lB06ugAAAABJRU5ErkJggg==">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=6. Program_Types&url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=6. Program_Types&url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/&title=6. Program_Types" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=6. Program_Types&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/4b2ecddadcc3/&text=6. Program_Types" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <pre><code>XDP 负责宿主机到宿主机之间的负载均衡，进入的流量会被统一拦截和转发
+TC 负责宿主机到容器之间的流量转发，进入、发出的流量会被统一拦截和转发
+</code></pre>
+<h1>术语</h1>
+<p>per-packet cost ：每包成本，处理一个网络数据包的成本<br>
+hairpinning：发卡模式。<a target="_blank" rel="noopener" href="https://docs.fortinet.com/document/fortigate/5.4.0/cookbook/105831">hairpin</a><br>
+skb: <a target="_blank" rel="noopener" href="https://blog.csdn.net/shanshanpt/article/details/21024465">sock_buffer</a><br>
+Spectre:<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%B9%BD%E7%81%B5%E6%BC%8F%E6%B4%9E">幽灵漏洞</a><br>
+CPUMAP:<a target="_blank" rel="noopener" href="https://xdp-project.net/areas/cpumap.html">BPF CPUMAP映射类型</a><br>
+BPF Flow Dissector：<a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/v5.1/networking/bpf_flow_dissector.html">flow dissector</a><br>
+<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/TCP_offload_engine">offload</a><br>
+tc层：<a target="_blank" rel="noopener" href="https://www.nsnam.org/docs/models/html/traffic-control-layer.html">Traffic Control Layer</a>，2 层之上3层之下，2.5层<br>
+qdisc:<a target="_blank" rel="noopener" href="https://tonydeng.github.io/sdn-handbook/linux/tc.html">qdisc</a></p>
+<h1>3 程序类型</h1>
+<p>写作本文时，一共有 18 种不同的 BPF 程序类型，本节接下来进一步介绍其中两种和 网络相关的类型，即 XDP BPF 程序和 tc BPF 程序。这两种类型的程序在 LLVM、 iproute2 和其他工具中使用的例子已经在前一节“工具链”中介绍过了。本节将关注其架 构、概念和使用案例。</p>
+<hr>
+<h1>3.1 XDP</h1>
+<p>XDP（eXpress Data Path）提供了一个内核态、高性能、可编程 BPF 包处理框架。这个框架在软件中最早可以处理包的位置 <strong>（即网卡驱动收到包的时刻）</strong> 运行 BPF 程序。</p>
+<p>XDP hook 位于网络驱动的快速路径上，XDP 程序直接从接收缓冲区（receive ring）中将 包拿下来，无需执行任何耗时的操作，例如分配 skb 然后将包推送到网络协议栈，或者 将包推送给 <strong><a target="_blank" rel="noopener" href="https://jaminzhang.github.io/hardware/NIC-offload-Introduction/"><code>GRO 引擎</code></a></strong> 等等。因此，只要有 CPU 资源，XDP BPF 程序就能够在最早的位置执行处理。</p>
+<ul>
+<li>
+<p>XDP 可以<strong>复用所有上游开发的内核网络驱动、用户空间工具，以及其他一些可用的内核 基础设施</strong>，例如 BPF 辅助函数在调用自身时可以使用系统路由表、socket 等等。</p>
+</li>
+<li>
+<p>因为驻留在内核空间，因此 XDP 在<strong>访问硬件时与内核其他部分有相同的安全模型</strong>。</p>
+</li>
+<li>
+<p><strong>无需跨内核/用户空间边界</strong>，因为正在被处理的包已经在内核中，因此可以灵活地将 其转发到内核内的其他实体，例如容器的命名空间或内核网络栈自身。Meltdown 和 Spectre 漏洞尤其与此相关（Spectre 论文中一个例子就是用 ebpf 实现的，译者注 ）。</p>
+</li>
+<li>
+<p>将包从 XDP 送到内核中非常简单，可以<strong>复用内核</strong>中这个健壮、高效、使用广泛的 TCP/IP 协议栈，而<strong>不是像一些用户态框架</strong>一样需要自己维护一个独立的 TCP/IP 协 议栈。</p>
+</li>
+<li>
+<p>基于 BPF 可以<strong>实现内核的完全可编程</strong>，保持 ABI 的稳定，保持内核的系统调用 ABI <code>“永远不会破坏用户空间的兼容性”</code> 的保证。而且，与内核 模块（modules）方式相比，它还更加安全，这来源于 <strong>BPF 校验器</strong>，它能保证内核操作 的稳定性。</p>
+</li>
+<li>
+<p>XDP 轻松地支持在<code>运行时（runtime）</code>原子地<code>创建（spawn）</code>新程序，而**<code>不会导致任何网络流量中断</code>**，甚至不需要重启内核/系统。</p>
+</li>
+<li>
+<p>XDP 允许对负载进行灵活的结构化，然后集成到内核。例 如，它可以工作在<code>“不停轮询”</code>或<code>“中断驱动”</code>模 式。不需要显式地将专门 CPU 分配给 XDP。没有特殊的硬件需求，它也不依赖 <code>hugepage（大页）</code>。</p>
+</li>
+<li>
+<p>XDP 不需要任何第三方内核模块或许可（licensing）。它是一个长期的架构型解决方案，是 Linux 内核的一个核心组件，而且是由内核社 区开发的。</p>
+</li>
+<li>
+<p>主流发行版中，4.8+ 的内核已经内置并启用了 XDP，并支持主流的 10G 及更高速网络 驱动。</p>
+</li>
+</ul>
+<p>作为一个在驱动中运行 BPF 的框架，XDP 还保证了包是线性放置并且可以匹配到单 个 DMA 页面，这个页面对 BPF 程序来说是可读和可写的。XDP 还提供了额外的 256 字 节 headroom 给 BPF 程序，后者可以利用 <strong><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/bpf-helpers.7.html"><code>bpf_xdp_adjust_head()</code> </a>辅助函数</strong>  实现自定义 <strong><code>封装头</code></strong> ，或者通过 <strong><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/bpf-helpers.7.html"><code>bpf_xdp_adjust_meta()</code></a> 在包前面添加自定义元数据</strong>。</p>
+<p>下一节会深入介绍 XDP 操作码，BPF 程序会根据返回的操作码来指导驱动接下来应该对这个包做什么，而且它还使得我们可以原子地替换运行在 XDP 层的程序。XDP 在设计上就是定位于高性能场景的。BPF 允许以“直接包访问”的 方式访问包中的数据，这意味着程序直接将数据的指针放到了寄存器中，然后将内容加载到寄存器，相应地再将内容从寄存器写到包中。</p>
+<p>数据包在 XDP 中的表示形式是 xdp_buff，这也是传递给 BPF 程序的结构体（BPF 上下 文）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">xdp_buff</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span> *data;</span><br><span class="line">    <span class="keyword">void</span> *data_end;</span><br><span class="line">    <span class="keyword">void</span> *data_meta;</span><br><span class="line">    <span class="keyword">void</span> *data_hard_start;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">xdp_rxq_info</span> *<span class="title">rxq</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong><code>data</code></strong>: 指向页面（page）中包数据的起始位置</li>
+<li><strong><code>data_end</code></strong>:  执行包数据 的结尾位置</li>
+<li><strong><code>data_meta</code></strong>: 开始时指向与 data 相同的位置，<code>bpf_xdp_adjust_meta()</code> 能够将其朝着 <code>data_hard_start</code> 移动</li>
+<li><strong><code>data_hard_start</code></strong>:XDP 支持 headroom，因此 data_hard_start 指向页面中最大可能的 headroom 开始位置
+<ul>
+<li>即，当对包进行封包（加 header）时，data 会逐渐向 data_hard_start 靠近，这是通过 <code>bpf_xdp_adjust_head()</code> 实现的，该辅助函数还支 持解拆包（去 header）。</li>
+</ul>
+</li>
+<li><strong><code>rxq</code></strong>:指向某些额外的、和每个接收队列相关的元数据：
+<ul>
+<li>这些元数据是在缓冲区设置时确定的（并不是在 XDP 运行时）。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">xdp_rxq_info</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">net_device</span> *<span class="title">dev</span>;</span></span><br><span class="line">    u32 queue_index;</span><br><span class="line">    u32 reg_state;</span><br><span class="line">&#125; ____cacheline_aligned;		</span><br></pre></td></tr></table></figure>
+<hr>
+<p><strong><code>注：</code></strong> data_meta 开始时指向与 data 相同的位置，bpf_xdp_adjust_meta() 能够将其朝着 <code>data_hard_start</code>移动，这样可以给自定义元数据提供空间，这个空间对内核网络栈是不可见的，但对 tc BPF 程序可见，因为 <strong>tc 需要将它从 XDP 转移到 skb</strong>。 反之亦然，这个辅助函数也可以将 data_meta 移动到离 data_hard_start 比较远的位 置，这样就可以达到删除或缩小这个自定义空间的目的。 <strong>data_meta 还可以单纯用于在尾调用时<code>传递状态</code></strong>，和 tc BPF 程序中用 skb-&gt;cb[] 控制块（control block）类似。</p>
+<p>这样，我们就可以得到这样的结论，对于 struct xdp_buff 中数据包的指针，有： <code>data_hard_start &lt;= data_meta &lt;= data &lt; data_end</code>.</p>
+<p>BPF 程序可以从 netdevice 自身获取 queue_index 以及其他信息，例如 ifindex。</p>
+<hr>
+<h1>BPF 程序返回码</h1>
+<p>XDP BPF 程序执行结束后会返回一个判决结果（verdict），告诉驱动接下来如何处理这个 包。在系统头文件 linux/bpf.h 中列出了所有的判决类型。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">xdp_action</span> &#123;</span></span><br><span class="line">    XDP_ABORTED = <span class="number">0</span>,</span><br><span class="line">    XDP_DROP,</span><br><span class="line">    XDP_PASS,</span><br><span class="line">    XDP_TX,</span><br><span class="line">    XDP_REDIRECT,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>
+<p>XDP_DROP 表示立即在驱动层将包丢弃。这样可以节省很多资源，对于 DDoS mitigation 或通用目的防火墙程序来说这尤其有用。</p>
+</li>
+<li>
+<p>XDP_PASS 表示允许将这个包送到内核网络栈。同时，当前正在处理这个包的 CPU 会 分配一个 skb，做一些初始化，然后将其送到 GRO 引擎。这是没有 XDP 时默 认的包处理行为是一样的。</p>
+</li>
+<li>
+<p>XDP_TX 是 BPF 程序的一个高效选项，能够在收到包的网卡上直接将包再发送出去。对于实现防火墙+负载均衡的程序来说这非常有用，因为这些部署了 BPF 的节点可以作为一 个 <a target="_blank" rel="noopener" href="https://docs.fortinet.com/document/fortigate/5.4.0/cookbook/105831">hairpin</a> （发卡模式，从同一个设备进去再出来）模式的负载均衡器集群，将<code>收到的包</code>在 XDP BPF 程序中<code>重写</code>之后直接推送回去。</p>
+</li>
+<li>
+<p>XDP_REDIRECT 与 XDP_TX 类似，但是<strong>通过另一个网卡</strong>将包发出去。另外， <code>XDP_REDIRECT</code> 还可以将包重定向到一个 BPF cpumap，即，当前执行 XDP 程序的 CPU 可以将这个包交给某个远端 CPU，由后者（某个远端 CPU）将这个包送到更上层的内核栈，当前 CPU 则继续在这个网卡执行接收和处理包的任务。这和 <code>XDP_PASS</code> 类似。但当前 CPU 不用去做将包送到内核协议栈的准备工作（分配 skb，初始化等等），因为这部分开销还是很大的。</p>
+</li>
+<li>
+<p>XDP_ABORTED 表示程序产生异常，其行为和 XDP_DROP，但 XDP_ABORTED 会经过 trace_xdp_exception tracepoint，因此可以通过 tracing 工具来监控这种非正常行为。</p>
+</li>
+</ul>
+<hr>
+<h1>XDP 使用案例</h1>
+<p>本节列出了 XDP 的几种主要使用案例。这里列出的并不全，而且考虑到 XDP 和 BPF 的可 编程性和效率，人们能容易地将它们适配到其他领域。</p>
+<ul>
+<li>
+<p><strong>DDoS 防御、防火墙</strong><br>
+XDP BPF 的一个基本特性就是用 <code>XDP_DROP</code> 命令驱动将包丢弃，由于这个丢弃的位置 非常早 <strong>（网卡驱动收到包的时刻）</strong> ，因此这种方式可以实现高效的网络策略，平均到每个包的开销非常小（ per-packet cost）。这对于那些需要处理任何形式的 DDoS 攻击的场景来说是非常理 想的，而且由于其通用性，使得它能够在 BPF 内实现任何形式的防火墙策略，开销几乎为零， 例如，作为 standalone 设备（例如通过 XDP_TX 清洗流量）；或者广泛部署在节点上，保护节点的安全（通过 <code>XDP_PASS</code> 或 <code>cpumap XDP_REDIRECT</code> 允许“好流量”经过）。</p>
+<p>Offloaded XDP 将本来就已经很小的 per-packet cost （每包成本）全部下放到网卡以 线速（line-rate）进行处理，从而使这一点更上一层楼。</p>
+</li>
+<li>
+<p><strong>转发和负载均衡</strong><br>
+XDP 的另一个主要使用场景是包转发和负载均衡，这是通过 <code>XDP_TX</code> 或 <code>XDP_REDIRECT</code> 动作实现的。</p>
+<p>XDP 层运行的 BPF 程序能够 <strong>任意修改（mangle）</strong> 数据包，即使是 BPF 辅助函数都能增加或减少包的 <code>headroom</code>，这样就可以在将包再次发送出去之前，对包进行任何的封包/拆包。</p>
+<p>利用 XDP_TX 能够实现 hairpinned（发卡）模式的负载均衡器，这种均衡器能够 在接收到包的网卡再次将包发送出去，而 <code>XDP_REDIRECT</code> 动作能够将包转发到另一个网卡然后发送出去。</p>
+<p><code>XDP_REDIRECT</code> 返回码还可以和 <a target="_blank" rel="noopener" href="https://lwn.net/Articles/736336/">BPF cpumap</a> 一起使用，对那些目标是本机协议栈、 将由 non-XDP 的远端（remote）CPU 处理的包进行负载均衡。</p>
+</li>
+<li>
+<p><strong>栈前（Pre-stack）过滤/处理</strong>：进入协议栈前处理</p>
+<p>除了策略执行，XDP 还可以用于加固内核的网络栈，这是通过 XDP_DROP 实现的。 这意味着，XDP 能够在可能的最早位置丢弃那些与本节点不相关的包，这个过程发生在 内核网络栈看到这些包之前。例如假如我们已经知道某台节点只接受 TCP 流量，那任 何 UDP、SCTP 或其他四层流量都可以在发现后立即丢弃。</p>
+<p>这种方式的好处是包不需要再经过各种实体（例如 GRO 引擎、内核的 <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/v5.1/networking/bpf_flow_dissector.html">flow dissector</a> 以及其他的模块），就可以判断出是否应该丢弃，因此减少了内核的 受攻击面。正是由于 XDP 的早期处理阶段，这有效地对内核网络栈“假装”这些包根本就没被网络设备看到。</p>
+<p>另外，如果内核接收路径上某个潜在 bug 导致 <a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%AD%BB%E4%BA%A1%E4%B9%8BPing">ping of death</a> 之类的场景，那我们能够利用 XDP 立即丢弃这些包，而不用重启内核或任何服务。而且由于能够原子地替换 程序，这种方式甚至都不会导致宿主机的任何流量中断。</p>
+<p>栈前处理的另一个场景是：在内核<strong>分配 skb 之前</strong>，XDP BPF 程序可以对包进行**<code>任意修改</code>**，而且对内核“假装”这个包从网络设备收上来之后就是这样的。对于某些自定义包 修改（mangling）和封装协议的场景来说比较有用，在这些场景下，包在进入 GRO 聚合之前会被修改和解封装，否则 GRO 将无法识别自定义的协议，进而无法执行任何形式的聚合。</p>
+<p>XDP 还能够在包的前面 push 元数据（非包内容的数据）。这些元数据对常规的内核栈是不可见的，但能被 GRO 聚合（匹配元数据），稍后可以和 tc ingress BPF 程序一起处理，tc BPF 中携带了 skb 的某些上下文，例如，设置了某些 skb 字段。</p>
+</li>
+<li>
+<p><strong>流抽样（Flow sampling）和监控</strong></p>
+<p>XDP 还可以用于包监控、抽样或其他的一些网络分析，例如作为流量路径中间节点 的一部分；或运行在终端节点上，和前面提到的场景相结合。对于复杂的包分析，XDP 提供了设施来高效地将网络包（截断的或者是完整的 payload）或自定义元数据 push 到 perf 提供的一个快速、无锁、per-CPU 内存映射缓冲区，或者是一 个用户空间应用。</p>
+<p>这还可以用于流分析和监控，对每个流的初始数据进行分析，一旦确定是正常流量，这个流随 后的流量就会跳过这个监控。感谢 BPF 带来的灵活性，这使得我们可以实现任何形式 的自定义监控或采用。</p>
+</li>
+</ul>
+<hr>
+<h1>XDP 工作模式</h1>
+<p>XDP 有三种工作模式，默认是 native（原生）模式，当讨论 XDP 时通常隐含的都是指这 种模式。</p>
+<ul>
+<li>
+<p><strong>Native XDP</strong><br>
+默认模式，在这种模式中，XDP BPF 程序直接运行在网络驱动的早期接收路径上（ early receive path）。大部分广泛使用的 10G 及更高速的网卡都已经支持这种模式 。</p>
+</li>
+<li>
+<p><strong>Offloaded XDP</strong><br>
+在这种模式中，XDP BPF 程序直接 offload 到网卡，而不是在主机的 CPU 上执行。 因此，本来就已经很低的 per-packet 开销完全从主机下放到网卡，能够比运行在 native XDP 模式取得更高的性能。这种 offload 通常由**智能网卡(SmartNIC)**实现，这些网卡有多 线程、多核流处理器（flow processors），一个位于内核中的 JIT 编译器（ in-kernel JIT compiler）将 BPF 翻译成网卡的原生指令。</p>
+<p>支持 offloaded XDP 模式的驱动通常也支持 native XDP 模式，因为 BPF 辅助函数可 能目前还只支持后者。</p>
+</li>
+<li>
+<p><strong>Generic XDP</strong></p>
+<p>对于还没有实现 native 或 offloaded XDP 的驱动，内核提供了一个 generic XDP 选 项，这种模式不需要任何驱动改动，因为相应的 XDP 代码运行在网络栈很后面的一个 位置（a much later point）。</p>
+<p>这种设置主要面向的是用内核的 XDP API 来编写和测试程序的开发者，并且无法达到 前面两种模式能达到的性能。对于在生产环境使用 XDP，推荐要么选择 native 要么选择 offloaded 模式。</p>
+</li>
+</ul>
+<h1>驱动支持</h1>
+<p>由于 BPF 和 XDP 的特性和驱动支持还在快速发展和变化，因此这里的列表只统计到了 4.17 内核支持的 native 和 offloaded XDP 驱动。<br>
+略…</p>
+<hr>
+<h1>tc (traffic control)</h1>
+<p>除了 XDP 等类型的程序之外，BPF 还可以用于内核数据路径的 tc (traffic control，流量控制)层。</p>
+<p><strong>tc 和 XDP BPF 程序的不同。从高层看，tc BPF 程序和 XDP BPF 程序有三点主要不同：</strong></p>
+<ul>
+<li>
+<p>BPF 的输入上下文（input context）是一个 sk_buff 而不是 xdp_buff。当内核 <strong>协议栈</strong> 收到一个包时（说明包通过了 XDP 层），它会分配一个缓冲区，解析包，并存储包 的元数据。表示这个包的结构体就是 <strong><code>sk_buff</code></strong>。这个结构体会暴露给 BPF 输入上下文， 因此 tc <code>ingress</code> 层的 BPF 程序就可以利用这些（由协议栈提取的）包的元数据。这些元数据很有用，但在包达到 tc 的 hook 点之前，协议栈执行的<strong>缓冲区分配</strong>、<strong>元数据提取</strong>和其他处理等过程也是有<code>开销</code>的。从定义来看，xdp_buff 不需要访问这些元数据，因为 XDP hook 在进入协议栈<strong>之前</strong>就会被调用。这是 XDP 和 tc hook 性能差距的重要原因之一 。</p>
+<p>因此，attach 到 tc BPF hook 的 BPF 程序可以读取 skb 的 mark、pkt_type、 protocol、priority、queue_mapping、napi_id、cb[]、hash、tc_classid 、tc_index、vlan 元数据和 <strong>XDP 层传过来的自定义元数据</strong> 以及其他信息。 tc BPF 的 BPF 上下文中使用了 <strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/linux/skbuff.h#L714"><code>struct \_\_sk_buff</code></a></strong>，这个结构体中的所有成员字段都定义在 **<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/linux/bpf.h"><code>linux/bpf.h</code></a>**系统头文件。</p>
+<p>通常来说，<strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/C/ident/sk_buff"><code>sk_buff</code></a></strong> 和 <strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/C/ident/xdp_buff"><code>xdp_buff</code></a></strong> 完全不同，二者各有优缺点。例如，sk_buff 的优点就是修改与其关联的元数据（its associated metadata）非常方便，但它包含了大量协议相关的特定信息（例如 GSO 相关的状态），这使得无法仅仅通过重写包数据来**<code>切换协议</code><strong>。这是因为</strong>协议栈是基于元数据处理包的，而不是每次都去读包的内容**。因此，BPF 辅助函数需要<strong>额外的转换</strong>，并且还要正确处理 sk_buff 内部信息。xdp_buff 没有这些问题，因为它所处的阶段非常早，此时内核还没有分配 sk_buff，因此很容易实现各种类型的数据包重写（packet rewrite）。 但是，xdp_buff 的缺点是在它这个阶段进行任意修改的时候，无法利用到 <code>sk_buff</code> 元数据。解决这个问题的方式是从 XDP BPF <strong>传递自定义的元数据</strong>到 tc BPF。这样，根据使用场景的不同，可以同时利用这两者 BPF 程序，以达到互补的效果。</p>
+<p>注：XDP 可以修改数据包来切换协议。比如 TCP 转 UDP ，修改数据包的协议头部分即可。可以理解 XDP 可以工作在三层，tc 工作在三层半</p>
+</li>
+<li>
+<p>tc BPF 程序在数据路径上的 <strong><code>ingress</code></strong> 和 <strong><code>egress</code></strong> 点都可以触发；而 <strong>XDP BPF 程序 只能在 ingress 点触发</strong>。<br>
+内核两个 hook 点：</p>
+<ol>
+<li>ingress hook sch_handle_ingress()：由 <strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/net/core/dev.c#L5111"><code>\_\_netif_receive_skb_core()</code></a></strong> 触发</li>
+<li>egress hook sch_handle_egress()：由 <strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/net/core/dev.c#L4049"><code>\_\_dev_queue_xmit()</code></a></strong> 触发</li>
+</ol>
+<p>__netif_receive_skb_core() 和 __dev_queue_xmit() 是 data path 的主要接收和 发送函数，不考虑 XDP 的话（XDP 可能会拦截或修改，导致不经过这两个 hook 点）， 每个网络进入或离开系统的网络包都会经过这两个点，从而使得 tc BPF 程序具备完全可观测性。</p>
+</li>
+<li>
+<p>tc BPF 程序不需要驱动做任何改动，因为它们运行在网络栈通用层中的 hook 点。因此，它们可以 attach 到任何类型的网络设备上。</p>
+<h2 id="ingress">ingress</h2>
+<p>这提供了很好的灵活性，但跟运行在原生 XDP 层的程序相比，性能要差一些。然而，tc BPF 程序仍然是内核的通用 data path 做完 GRO 之后、且处理任何协议<strong>之前</strong>最早的 处理点。传统的 iptables 防火墙也是在这里处理的，例如 iptables PREROUTING 或 nftables ingress hook 或其他数据包包处理过程。</p>
+<h2 id="egress">egress</h2>
+<p>类似的，对于 <strong>egress</strong>，tc BPF 程序在将包交给驱动之前的<strong>最晚</strong>的地方（latest point）执 行，这个地方在传统 iptables 防火墙 hook 之后（例如 iptables POSTROUTING）， 但在内核 GSO 引擎之前。</p>
+<p>唯一需要驱动做改动的场景是：将 tc BPF 程序 <code>offload</code> 到网卡。形式通常和 XDP offload 类似，只是特性列表不同，因为二者的 BPF 输入上下文、辅助函数和返回码（ verdict）不同。</p>
+</li>
+</ul>
+<h2 id="cls-bpf-分类器"><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/net/sched/cls_bpf.c"><code>cls_bpf</code></a> 分类器</h2>
+<p><em>注：<a target="_blank" rel="noopener" href="https://netdevconf.info/1.2/slides/oct7/10_nic_viljoen_eBPF_Offload_to_Hardware__cls_bpf_and_XDP_finalised.pdf">eBPF Offload to Hardware:<br>
+<code>cls_bpf</code> and XDP</a></em></p>
+<p>运行在 tc 层的 BPF 程序是从 <code>cls_bpf</code> 分类器开始运行的。虽然 <strong>tc 术语将 <code>BPF连接点</code>描述为<code>“分类器”</code></strong>，但这个词其实有点误导，因为它没有充分的描述了<code>cls_bpf</code>可以 做的事情。attachment point 是一个完全可编程的包处理器，不仅能够读取 skb 元数据和包数据，还可以任意修改这两者，并通过动作判决终止TC处理。因此，<code>cls_bpf</code> 可以认为是一个<strong>管理和执行 tc BPF 程序的独立实体</strong>。</p>
+<p><code>cls_bpf</code> 可以持有一个或多个 tc BPF 程序。Cilium 在部署 <code>cls_bpf</code> 程序时 ，对于一个给定的 hook 点只会附着一个程序，并且用的是 <strong>直接操作（direct-action）</strong> 模式。 典型情况下，在传统 tc 方案中，<code>分类器（classifier ）</code>和<code>操作模块（action modules）</code> 之间是分开的，每个分类器可以 attach 多个 action，当匹配到这个分类器时这些 action 就会执行。<br>
+在现代世界，在软件 data path 中使用 tc 做复杂包处理时这种模型<strong>扩展性不好</strong>。 考虑到附着到 <code>cls_bpf</code> 的 tc BPF 程序 是完全独立的，因此它们有效地将解析和 action 过程融合到了单个单元（unit）中。得益于 <code>cls_bpf</code> 的 <code>direct-action</code> 模式，它只需要返回 tc action 判决结果，然后立即 终止处理流水线。这使得能够在网络 data path 中实现可扩展可编程的包处理，避免动作的线性迭代。<code>cls_bpf</code> 是 tc 层中唯一支持这种快速路径（fast-path）的一个分类器模块。</p>
+<p>和 XDP BPF 程序类似，tc BPF 程序能在运行时（runtime）通过 <code>cls_bpf</code> 原子地更新， 而不会导致<strong>任何网络流量中断</strong>，也不用重启服务。</p>
+<p><code>cls_bpf</code> 可以附着的 tc ingress 和 egress hook 点都是由一个名为 <code>sch_clsact</code> 的 伪 qdisc 管理的，它是 ingress qdisc 的一个超集（superset），可以无缝替换后 者，因为它既可以管理 ingress tc hook 又可以管理 egress tc hook。对于 <code>\_\_dev_queue_xmit()</code> 内的 tc egress hook，需要注意的是这个 hook 并不是在内核的 qdisc root lock 下执行的。因此，ingress 和 egress hook 都是在快速路径中以无锁（ lockless）方式执行的。不管是 ingress 还是 egress，抢占（preemption ）都被关闭， 并且执行发生在 <code>[RCU](https://zhuanlan.zhihu.com/p/30583695)</code> 读的一侧。</p>
+<p>通常在 egress 的场景下，有很多类型的 qdisc 会 attach 到 netdevice，例如 <code>sch_mq</code>, <code>sch_fq</code>, <code>sch_fq_codel</code> 或者 <code>sch_htb</code>，其中某些是<strong>有分类的 qdiscs</strong>，这些 qdisc 包含<strong>多个子类别</strong>。 因此需要一个对包进行分类的机制，决定将包 <strong>分离（demux）</strong> 到哪里。这个机制是 由调用 <code>tcf_classify()</code> 实现的，这个函数会进一步调用 <code>tc 分类器</code>（如果提供了）。</p>
+<p>在 这种场景下， <code>cls_bpf</code> 也可以被 attach 和使用。这种操作通常发生在 qdisc root lock 下面，因此会面临锁竞争的问题。 <code>sch_clsact</code> qdisc 的 egress hook 点位于<strong>更前面</strong>，没有落入这个锁的范围内，因此完全<strong>独立于</strong>常规 egress qdisc 而执行。</p>
+<p>因此对于 sch_htb 这种场景，<code>sch_clsact</code> qdisc 可以将繁重的数据包分类工作可通过 tc BPF 程序，在 qdisc root lock 之外执行，在这些 tc BPF 程序中设置 <code>skb-&gt;mark</code> 或 <code>skb-&gt;priority</code> ，因此随后 <code>sch_htb</code> 只需要一个简单的映射，而没有原来在 root lock 下面昂贵的包分类开销，还减少了锁竞争。</p>
+<p>在 <code>sch_clsact</code> 结合 <code>cls_bpf</code> 场景下支持 Offloaded tc BPF 程序， 在这种场景下，原来加载到<strong>智能网卡驱动</strong>的 BPF 程序被 JIT，在网卡原生执行。 只有工作在 direct-action 模式的 <code>cls_bpf</code> 程序支持 offload。 <code>cls_bpf</code> 只支持 offload 单个程序，不支持<strong>同时</strong> offload 多个程序。另外，<strong>只有 ingress hook 支持 offloading BPF 程序</strong>。</p>
+<p>一个 <code>cls_bpf</code> 实例内部可以持有多个 tc BPF 程序。如果由多个程序， <code>TC_ACT_UNSPEC</code> 程序返回码就是让继续执行列表中的下一个程序。但这种方式的缺点是： <strong>每个程序都需要解析一遍数据包，性能会下降</strong>。</p>
+<h1>BPF 程序返回码</h1>
+<p>tc ingress 和 egress hook 共享相同的返回码（动作判决），定义在 linux/pkt_cls.h 系统头文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TC_ACT_UNSPEC         (-1)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TC_ACT_OK               0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TC_ACT_SHOT             2</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TC_ACT_STOLEN           4</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TC_ACT_REDIRECT         7</span></span><br></pre></td></tr></table></figure>
+<p>系统头文件中还有一些 <code>TC_ACT_*</code> 动作判决，也用在了这两个 hook 中。但是，这些判决 和上面列出的那几个共享相同的语义。这意味着，从 tc BPF 的角度看， <code>TC_ACT_OK</code> 和 <code>TC_ACT_RECLASSIFY</code> 有相同的语义， <code>TC_ACT_STOLEN</code>, <code>TC_ACT_QUEUED</code> and <code>TC_ACT_TRAP</code> 返回码也是类似的情况。因此， 对于这些情况，我们只描述 <code>TC_ACT_OK</code> 和 <code>TC_ACT_STOLEN</code> 操作码。</p>
+<h2 id="TC-ACT-UNSPEC-和-TC-ACT-OK"><code>TC_ACT_UNSPEC</code> 和 <code>TC_ACT_OK</code></h2>
+<p><code>TC_ACT_UNSPEC</code> 表示“未指定的动作”（unspecified action），在三种情况下会用到：</p>
+<ol>
+<li>attach 了一个 offloaded tc BPF 程序，tc ingress hook 正在运行，被 offload 的 程序的 <code>cls_bpf</code> 表示会返回 <code>TC_ACT_UNSPEC</code></li>
+<li>为了在 <code>cls_bpf</code> 多程序的情况下，继续下一个 tc BPF 程序。这种情况可以和第一种情况中提到的 offloaded tc BPF 程序一起使用，将继续运行在不是 offloaded 下的 tc BPF 程序，并返回 <code>TC_ACT_UNSPEC</code></li>
+<li><code>TC_ACT_UNSPEC</code> 还用于单个程序从场景，只是通知内核继续执行 <code>skb</code> 处理，但不要带 来任何副作用（without additional side-effects）。</li>
+</ol>
+<p>TC_ACT_UNSPEC 在某些方面和 <code>TC_ACT_OK</code> 非常类似，因为二者都是将 <code>skb</code> 向下一个 处理阶段传递，在 <code>ingress</code> 的情况下是传递给内核协议栈的更上层，在 egress 的情况下 是传递给网络设备驱动。<strong>唯一的不同是 <code>TC_ACT_OK</code> <code>基于 tc BPF 程序</code>设置的 classid 来设置 skb-&gt;tc_index</strong>，而 <code>TC_ACT_UNSPEC</code> 是通过 tc BPF 程序之外的 BPF 上下文中的 <code>skb-&gt;tc_classid</code> 设置。</p>
+<h2 id="TC-ACT-SHOT-和-TC-ACT-STOLEN"><code>TC_ACT_SHOT</code> 和 <code>TC_ACT_STOLEN</code></h2>
+<p>这两个返回码指示内核将包丢弃。这两个返回码很相似，只有少数几个区别：</p>
+<ul>
+<li><code>TC_ACT_SHOT</code> 提示内核 <code>skb</code> 是通过 <code>kfree_skb()</code> 释放的，并<strong>返回 <code>NET_XMIT_DROP</code> 给调用方</strong>，作为立即反馈</li>
+<li><code>TC_ACT_STOLEN</code> 通过 consume_skb() 释放 <code>skb</code>，<strong>返回 <code>NET_XMIT_SUCCESS</code> 给上层<code>假装</code>这个包已经被正确发送了</strong></li>
+</ul>
+<h2 id="TC-ACT-REDIRECT">TC_ACT_REDIRECT</h2>
+<p>这个返回码加上 bpf_redirect() 辅助函数，允许重定向一个 <code>skb</code> 到同一个或另一个设备的 <code>ingress</code> 或 <code>egress</code> 路径。能够将包注入另一个设备的 <code>ingress</code> 或 <code>egress</code> 路径使 得基于 BPF 的包转发具备了完全的灵活性。对目标网络设备没有额外的要求，<strong>只要本身是一个网络设备就行了</strong>，在目标设备上不需要运行 <code>cls_bpf</code> 实例或其他限制。</p>
+<hr>
+<h1>文档连接</h1>
+<p><a target="_blank" rel="noopener" href="https://www.dazhuanlan.com/2019/12/10/5dee76b007da0/">Linux BPF 3.2、BPF and XDP Reference Guide</a><br>
+<a target="_blank" rel="noopener" href="http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_instruction">[译] Cilium：BPF 和 XDP 参考指南（2019）</a><br>
+<a target="_blank" rel="noopener" href="https://docs.cilium.io/en/stable/bpf/">BPF and XDP Reference Guide</a><br>
+<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/bpf-helpers.7.html">BPF 辅助函数</a><br>
+<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man2/bpf.2.html">BPF man 文档</a><br>
+<a target="_blank" rel="noopener" href="https://docs.fortinet.com/document/fortigate/5.4.0/cookbook/105831">Using Hairpinning in a Network</a><br>
+<a target="_blank" rel="noopener" href="https://lwn.net/Articles/736336/">BPF cpumap</a><br>
+<a target="_blank" rel="noopener" href="https://xdp-project.net/">Top-level XDP project management</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/4b2ecddadcc3/">https://jony-one.github.io/jony.github.io/4b2ecddadcc3/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/99a44d212429/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/ada1626fa032/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">术语</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">3 程序类型</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">3.1 XDP</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">4.</span> <span class="toc-text">BPF 程序返回码</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">5.</span> <span class="toc-text">XDP 使用案例</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">6.</span> <span class="toc-text">XDP 工作模式</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">7.</span> <span class="toc-text">驱动支持</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">8.</span> <span class="toc-text">tc (traffic control)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#ingress"><span class="toc-number">8.1.</span> <span class="toc-text">ingress</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#egress"><span class="toc-number">8.2.</span> <span class="toc-text">egress</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cls-bpf-%E5%88%86%E7%B1%BB%E5%99%A8"><span class="toc-number">8.3.</span> <span class="toc-text">cls_bpf 分类器</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">9.</span> <span class="toc-text">BPF 程序返回码</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#TC-ACT-UNSPEC-%E5%92%8C-TC-ACT-OK"><span class="toc-number">9.1.</span> <span class="toc-text">TC_ACT_UNSPEC 和 TC_ACT_OK</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TC-ACT-SHOT-%E5%92%8C-TC-ACT-STOLEN"><span class="toc-number">9.2.</span> <span class="toc-text">TC_ACT_SHOT 和 TC_ACT_STOLEN</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TC-ACT-REDIRECT"><span class="toc-number">9.3.</span> <span class="toc-text">TC_ACT_REDIRECT</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">10.</span> <span class="toc-text">文档连接</span></a></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

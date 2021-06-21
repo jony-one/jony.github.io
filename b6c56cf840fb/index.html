@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="renderer" content="webkit">
+
+  
+  <title>eBPF 相关文档阅读笔记 | Jony</title>
+
+  <link rel="shortcut icon" href="/jony.github.io/images/favicon.png">
+  <link rel="alternate" href="/jony.github.io/atom.xml" title="Jony" type="application/atom+xml">
+  <meta name="description" content="BPF 是 Linux 内核中 一个高度灵活与高效的类虚拟机（virtual machine-like） 组件，它以一种安全的方式在许多 hook 点执行字节码（bytecode ）。很多 内核子系统 都已经使用了 BPF，比如常见的网络（networking）、跟踪（tracing）与安全 （security ，例如沙盒）。 BPF（cBPF） 1992 年就出现了，但本文介绍的是扩展的 BPF">
+<meta property="og:type" content="article">
+<meta property="og:title" content="eBPF 相关文档阅读笔记">
+<meta property="og:url" content="https://jony-one.github.io/jony.github.io/b6c56cf840fb/index.html">
+<meta property="og:site_name" content="Jony">
+<meta property="og:description" content="BPF 是 Linux 内核中 一个高度灵活与高效的类虚拟机（virtual machine-like） 组件，它以一种安全的方式在许多 hook 点执行字节码（bytecode ）。很多 内核子系统 都已经使用了 BPF，比如常见的网络（networking）、跟踪（tracing）与安全 （security ，例如沙盒）。 BPF（cBPF） 1992 年就出现了，但本文介绍的是扩展的 BPF">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-02-20T08:37:29.000Z">
+<meta property="article:modified_time" content="2021-06-17T04:38:41.177Z">
+<meta property="article:author" content="Jony.Z.Y">
+<meta property="article:tag" content="ebpf">
+<meta name="twitter:card" content="summary">
+
+  <meta name="format-detection" content="telephone=no,email=no">
+  <meta name="theme-color" content="#9C27B0">
+  <meta name="description" content="">
+  <meta name="keywords" content=",ebpf">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Jony">
+  <meta name="msapplication-starturl" content="https://jony-one.github.io/jony.github.io/jony.github.io/b6c56cf840fb/">
+  <meta name="msapplication-navbutton-color" content="#9C27B0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jony">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="/jony.github.io/images/favicon.png">
+
+  
+    <meta property="article:published_time" content="Sat Feb 20 2021 16:37:29 GMT+0800">
+    <meta property="article:modified_time" content="Thu Jun 17 2021 12:38:41 GMT+0800">
+  
+
+  
+    <link rel="canonical" href="https://jony-one.github.io/jony.github.io/jony.github.io/b6c56cf840fb/">
+  
+
+  
+  
+
+  
+  
+  
+
+  
+<link rel="stylesheet" href="/jony.github.io/css/mdui.css">
+<link rel="stylesheet" href="/jony.github.io/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+<body class="mdui-appbar-with-toolbar mdui-drawer-body-left mdui-theme-primary-indigo mdui-theme-accent-pink">
+  <script>var a=localStorage.getItem("mdui-theme-layout-dark");if(a){document.getElementsByTagName("body")[0].className+=" mdui-theme-layout-dark"};</script>
+  <header id="header" class="mdui-appbar mdui-appbar-fixed mdui-appbar-scroll-hide mdui-appbar-inset">
+  <div class="mdui-toolbar mdui-color-theme">
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-drawer="{target: '#sidebar', swipe: true}"><i class="mdui-icon material-icons">menu</i></a>
+    <a href="/jony.github.io/" class="mdui-typo-headline">Jony</a>
+    <div class="mdui-toolbar-spacer"></div>
+    <a href="javascript:;" class="mdui-btn mdui-btn-icon" mdui-dialog="{target: '#search'}" mdui-tooltip="{content: '搜索'}"><i class="mdui-icon material-icons">search</i></a>
+    <a href="/jony.github.io/atom.xml" class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: 'RSS'}"><i class="mdui-icon material-icons">rss_feed</i></a>
+  </div>
+</header>
+<div class="mdui-dialog" id="search">
+  
+    <div class="search-form">
+      <input type="search" class="search-form-input" placeholder="请输入关键词">
+    </div>
+    <div class="search-result" data-resource="/jony.github.io/search.xml"></div>
+  
+</div>
+  <aside id="sidebar" class="mdui-drawer mdui-drawer-full-height">
+  <div class="mdui-grid-tile">
+    <img src="/jony.github.io/images/banner.png" style="height: 160px;">
+    <img src="/jony.github.io/images/avatar.png" class="avatar-animation" style="position: absolute; top: 10%; left: 24px; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 50%;">
+    <div class="mdui-grid-tile-actions">
+      <div class="mdui-grid-tile-text">
+        <div class="mdui-grid-tile-title">Jony.Z.Y</div>
+        <div class="mdui-grid-tile-subtitle"><i class="mdui-icon material-icons">art_track</i></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    <a href="/jony.github.io/" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-blue">home</i>
+      <div class="mdui-list-item-content">主页</div>
+    </a>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-deep-orange">inbox</i>
+        <div class="mdui-list-item-content">归档</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/06/">六月 2021<span class="mdui-ripple sidebar_archives-count">10</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/05/">五月 2021<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/03/">三月 2021<span class="mdui-ripple sidebar_archives-count">11</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/archives/2021/02/">二月 2021<span class="mdui-ripple sidebar_archives-count">27</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-green">chrome_reader_mode</i>
+        <div class="mdui-list-item-content">分类</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/Lord-of-the-io-uring/">Lord of the io_uring<span class="mdui-ripple sidebar_archives-count">16</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/dubbo/">dubbo<span class="mdui-ripple sidebar_archives-count">1</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/eBPF/">eBPF<span class="mdui-ripple sidebar_archives-count">23</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/gRPC/">gRPC<span class="mdui-ripple sidebar_archives-count">4</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%AF%BC%E8%88%AA/">导航<span class="mdui-ripple sidebar_archives-count">3</span></a><a class="mdui-ripple sidebar_archives-link" href="/jony.github.io/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务<span class="mdui-ripple sidebar_archives-count">7</span></a>
+        
+      </div>
+    </div>
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-brown">bookmark</i>
+        <div class="mdui-list-item-content">标签</div>
+        <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+        <a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/CNI/" rel="tag">CNI<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/Netty/" rel="tag">Netty<span class="mdui-ripple sidebar_archives-none-count">5</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/cilium/" rel="tag">cilium<span class="mdui-ripple sidebar_archives-none-count">11</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf<span class="mdui-ripple sidebar_archives-none-count">23</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/grpc/" rel="tag">grpc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/h2c/" rel="tag">h2c<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/http2/" rel="tag">http2<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/io-uring/" rel="tag">io_uring<span class="mdui-ripple sidebar_archives-none-count">17</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/microservices/" rel="tag">microservices<span class="mdui-ripple sidebar_archives-none-count">12</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/sofa/" rel="tag">sofa<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/tc/" rel="tag">tc<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BC%82%E6%AD%A5/" rel="tag">异步<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%97%A0%E6%9C%8D%E5%8A%A1/" rel="tag">无服务<span class="mdui-ripple sidebar_archives-none-count">2</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/" rel="tag">流量控制<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%90%86%E8%AE%BA/" rel="tag">理论<span class="mdui-ripple sidebar_archives-none-count">1</span></a><a class="mdui-ripple sidebar_archives-none-link" href="/jony.github.io/tags/%E7%AE%97%E6%B3%95%E7%90%86%E8%A7%A3/" rel="tag">算法理解<span class="mdui-ripple sidebar_archives-none-count">1</span></a>
+        
+      </div>
+    </div>
+    <a href="/jony.github.io/about" class="mdui-list-item mdui-ripple">
+      <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-purple">person</i>
+      <div class="mdui-list-item-content">关于</div>
+    </a>
+  </div>
+
+  <div class="mdui-divider"></div>
+
+  <div class="mdui-list" mdui-collapse="{accordion: true}">
+    
+    <div class="mdui-collapse-item">
+      <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+        <div class="mdui-list-item-content">友情链接</div>
+        <i class="mdui-list-item-icon mdui-icon material-icons">link</i>
+      </div>
+      <div class="mdui-collapse-item-body mdui-list mdui-list-dense">
+        
+          <a href="https://github.com/jony-one" target="_blank" class="mdui-list-item mdui-ripple mdui-p-l-2 mdui-text-color-theme-accent" style="justify-content: center;">Github</a>
+        
+        
+      </div>
+    </div>
+  </div>
+</aside>
+  <main id="main" class="mdui-m-t-5 fadeIn animated">
+  
+<link rel="stylesheet" href="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.css">
+
+  <style>#main article .mdui-card-content .center-block{display:block!important;margin-right:auto!important;margin-left:auto!important}</style>
+  <article class="mdui-card mdui-m-b-5">
+    <header class="mdui-card-media">
+      <img src="/jony.github.io//images/random/material-15.png" style="max-height: 240px;">
+      <div class="mdui-card-media-covered">
+        <div class="mdui-card-primary">
+          <div class="mdui-card-primary-title">eBPF 相关文档阅读笔记</div>
+          <div class="mdui-card-primary-subtitle"><i class="iconfont">&#xe697;</i> 2021-02-20 / <i class="iconfont">&#xe601;</i> Jony</div>
+        </div>
+      </div>
+      <div class="mdui-card-menu">
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#qrcode', align: 'right'}"><i class="mdui-icon material-icons">devices</i></button>
+          <ul class="mdui-menu" id="qrcode">
+            
+              <li class="mdui-menu-item"><a class="mdui-text-center mdui-ripple">发送到我的手机</a></li>
+            
+            <li class="mdui-menu-item" disabled>
+              
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACZUlEQVR42u3aQXKDMAwF0Nz/0u0BGuiXBMbDPFZMmhg/FrIq6fPz6uuDh4eHh4eHh4e3Ge8TX18WOvj8/DtHKyffTPaGh4eHt4bX2+LfTSSMQojv7Q0PDw9vIS8J2cl2z3979AqSdaLjBA8PD29LXjX0n2/oiIqHh4f3Jl6eRufr54k7Hh4e3j68PKxfW3rIU/Dbay14eHh4MS9vMq2/X9rfw8PDwwt486ZUXoY4L0D0mmRf1sTDw8O7mZcH4qTkmpQVqil1PgSGh4eHt4Y3+bd/3sQ6L3Pkn+Dh4eHtw6s+stfiyg+e81/h4eHhreElobY6NFBtpM1Lunh4eHjreb3HJ5/01umtgIeHh/cUL29H5WE9T6ALqXPvYMDDw8Mb8/KSRH6fFG17TbhoNTw8PLyFvCR8V5PphDEvB+Ph4eE9xauWA/LUuZd8N5+Oh4eHdzOvV07tjWElQX/ymvDw8PDW8HphugqovsRReRcPDw/vIV5eeK2+rDnygoMBDw8Pb8yrNq7yx1dHBJK/NkcH8PDw8C7iVTfaK14kYX1SIMbDw8N7lpcfEr3UORlTGP0KDw8P71FeHpSr9/OhhGZKjYeHh3cpb1I46LW7ekMG/6yDh4eHdzOvet0xepW/7uiwwcPDw7uZ1wv0+ShAL12ukvDw8PDW83qbzhnVqzfQgIeHh7eelze6qqNR1RR5koLj4eHh7clLUuH88MifkgwQ4OHh4e3Pywu11SGqaqkXDw8Pbz0vKUbkLbHqUEK+Jh4eHt4OvLwEkCe+hZZVUIwoHFF4eHh4N/Ped+Hh4eHh4eHh4W1w/QKmaF3JeJo/1wAAAABJRU5ErkJggg==">
+              
+            </li>
+          </ul>
+        
+        
+          <button class="mdui-btn mdui-btn-icon mdui-text-color-white" mdui-menu="{target: '#share_menu', align: 'right'}"><i class="mdui-icon material-icons">share</i></button>
+          <ul class="mdui-menu" id="share_menu">
+            <li class="mdui-menu-item">
+              <a href="http://service.weibo.com/share/share.php?appkey=&title=eBPF 相关文档阅读笔记&url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/&pic=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&searchPic=false&style=simple" target="_blank" class="mdui-ripple">分享到微博</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://twitter.com/intent/tweet?text=eBPF 相关文档阅读笔记&url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/&via=Jony.Z.Y" target="_blank" class="mdui-ripple">分享到Twitter</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.facebook.com/sharer/sharer.php?u=https://jony-one.github.io/jony.github.io/b6c56cf840fb/" target="_blank" class="mdui-ripple">分享到Facebook</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://plus.google.com/share?url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/" target="_blank" class="mdui-ripple">分享到Google+</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/&title=eBPF 相关文档阅读笔记" target="_blank" class="mdui-ripple">分享到LinkedIn</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="http://connect.qq.com/widget/shareqq/index.html?site=Jony&title=eBPF 相关文档阅读笔记&summary=&pics=https://jony-one.github.io/jony.github.io/jony.github.io/images/favicon.png&url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/" target="_blank" class="mdui-ripple">分享到QQ</a>
+            </li>
+            <li class="mdui-menu-item">
+              <a href="https://telegram.me/share/url?url=https://jony-one.github.io/jony.github.io/b6c56cf840fb/&text=eBPF 相关文档阅读笔记" target="_blank" class="mdui-ripple">分享到Telegram</a>
+            </li>
+          </ul>
+        
+      </div>
+    </header>
+    <div class="mdui-card-content mdui-typo">
+      <p>BPF 是 <strong>Linux 内核中</strong> 一个高度灵活与高效的<strong>类虚拟机（<code>virtual machine-like</code>）</strong> 组件，它以一种安全的方式在许多 hook 点执行字节码（bytecode ）。很多 <strong>内核子系统</strong> 都已经使用了 BPF，比如常见的<strong>网络（networking）</strong>、<strong>跟踪（tracing）<strong>与</strong>安全 （security ，例如沙盒）</strong>。<br>
+<strong>BPF（cBPF）</strong> 1992 年就出现了，但本文介绍的是<strong>扩展的 BPF（extended Berkeley Packet Filter，eBPF</strong>）。eBPF 最早出现在 3.18 内核中，此后原来的 BPF 就被称为 <strong>“经典” BPF（classic BPF, cBPF）</strong>，cBPF 现在基本已经废弃了。</p>
+<h1>1.1 指令集</h1>
+<hr>
+<p>BPF 是一个通用目的 RISC 指令集，其最初的设计目标是：用 C 语言的一个子集编 写程序，然后用一个编译器后端（例如 LLVM）将其 <strong>编译</strong> 成 BPF 指令，然后内核再通 过一个位于内核中的（in-kernel）<strong>即时编译器（JIT Compiler）</strong> 将 BPF 指令映射成处 理器的 <strong>原生指令（opcode ）</strong> ，以取得在内核中的最佳执行性能。<br>
+将这些指令下放到内核中可以带来如下好处：</p>
+<ul>
+<li>
+<p><strong>无需在内核/用户空间切换就可以实现内核的可编程。</strong></p>
+</li>
+<li>
+<p><strong>可编程 datapath 具有很大的灵活性，因此程序能在编译时将不需要的特性禁用掉， 从而极大地优化程序的性能。</strong></p>
+</li>
+<li>
+<p>对于网络场景（例如 tc 和 XDP），BPF 程序可以在 <strong>无需重启内核、系统服务或容器的 情况下实现原子更新，并且不会导致网络中断</strong>。</p>
+</li>
+<li>
+<p>BPF 给用户空间 <strong>提供了一个稳定的 ABI</strong>，而且<strong>不依赖</strong>任何第三方内核模块。</p>
+</li>
+<li>
+<p>BPF 程序与内核协同工作，复用已有的内核基础设施和工具以及内核提供的安全保证。</p>
+<h1>注意</h1>
+<p><strong>BPF 程序在内核中的执行总是事件驱动的</strong></p>
+</li>
+</ul>
+<hr>
+<p>BPF 组成部分：</p>
+<ul>
+<li>
+<p>11 个64位寄存器<br>
+寄存器从 <strong><code>r0-r10</code></strong> 。默认运行 64 位，兼容 32 位。</p>
+<ul>
+<li><code>r10</code> 是唯一的只读寄存器。</li>
+<li><code>r1 - r5</code> 存储 BPF 调用内核辅助函数是传递的参数</li>
+<li><code>r6 - r9</code> 由 <strong>被调用方（callee）保存</strong>，在函数返回之后<strong>调用方</strong>可以读取</li>
+<li><code>r0</code>  存放被调用的 <strong>辅助函数</strong> 的返回值。注：辅助函数概念参考下面解释</li>
+</ul>
+</li>
+<li>
+<p>一个程序计数器（Program Counter，PC）</p>
+</li>
+<li>
+<p>一个 512 字节大小的 BPF 栈空间</p>
+<h1>注意</h1>
+<ul>
+<li>每个 BPF 程序的最大指令数限制在 4096 条以内。</li>
+<li>BPF 校验器禁止 程序中有循环</li>
+<li>BPF 中有尾调用的概念，允许一 个 BPF 程序调用另一个 BPF 程序。限制 32 层。</li>
+<li>BUG：可以使用尾调用实现循环概念</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h1>指令格式</h1>
+<p>BPF 指令格式（instruction format）建模为两操作数指令（two operand instructions）， 这种格式可以在 JIT 阶段将 BPF 指令映射（mapping）为原生指令。</p>
+<ul>
+<li>指令集长度固定为 64 bit 编码</li>
+<li>目前已经实现 87 条指令，并且可扩展</li>
+</ul>
+<p>指令格式：<strong><code>op:8, dst_reg:4, src_reg:4, off:16, imm:32</code></strong></p>
+<ul>
+<li>
+<p><strong><code>op</code></strong>：指定将要执行的操作。操作可以基于寄存器，也可以基于立即数。</p>
+<h3 id="op-指令分类（MSB（高比特）-到-LSB（最低比特））：">op 指令分类（<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%9C%80%E9%AB%98%E6%9C%89%E6%95%88%E4%BD%8D">MSB</a>（高比特） 到 <a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%9C%80%E4%BD%8E%E6%9C%89%E6%95%88%E4%BD%8D">LSB</a>（最低比特））：</h3>
+<ul>
+<li><code>class</code>：指令类型</li>
+<li><code>code</code>：指定类型的指令中的某种特定操作码</li>
+<li><code>source</code>：告诉源操作数是一个寄存器还是一个立即数</li>
+</ul>
+<h3 id="指令类别包括：">指令类别包括：</h3>
+<ul>
+<li>BPF_LD, BPF_LDX：加载操作（load operations）</li>
+<li>BPF_ST, BPF_STX：存储操作（store operations）</li>
+<li>BPF_ALU, BPF_ALU64：逻辑运算操作（ALU operations）</li>
+<li>BPF_JMP：跳转操作（jump operations）</li>
+</ul>
+</li>
+<li>
+<p><strong><code>dst_reg</code></strong> 和 <strong><code>src_reg</code></strong>：提供了一个寄存器操作数的额外信息</p>
+</li>
+<li>
+<p><strong><code>off</code></strong>: 有符号类型。编码信息定义在内核头文件中 <code>linux/bpf.h</code> 和 <code>linux/bpf_common.h</code> 中</p>
+<ul>
+<li>某些指令中，off 用于表示一个相对偏移量（offset）</li>
+</ul>
+</li>
+<li>
+<p><strong><code>imm</code></strong>: 有符号类型。编码信息定义在内核头文件中 <code>linux/bpf.h</code> 和 <code>linux/bpf_common.h</code> 中</p>
+<ul>
+<li>某些指令中，imm 存储一个常量值或者立即值</li>
+</ul>
+<p>所有的 BPF 操作，例如加载程序到内核，或者创建 BPF map，都是通过核心的 bpf() 系 统调用完成的。它还用于管理 map 表项（查找/更新/删除），以及通过 pinning（钉住 ）将程序和 map 持久化到 BPF 文件系统。</p>
+</li>
+</ul>
+<h1>辅助函数、BPF Maps、Object Pinning</h1>
+<p>问题，Process 通过文件描述符访问 BFP Maps ，是否需要经过系统调用，还是 Direct Memory，</p>
+<h1>参考文档</h1>
+<p><a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/latest/bpf/bpf_devel_QA.html">官方文档如何与BPF子系统交互</a><br>
+<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/bpf-helpers.7.html">bpf-helpers</a><br>
+<a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/latest/bpf/bpf_design_QA.html#questions-and-answers">bpf常见的设计问题</a><br>
+<a target="_blank" rel="noopener" href="http://arthurchiao.art/blog/cilium-bpf-xdp-reference-guide-zh/#bpf_arch">[译] Cilium：BPF 和 XDP 参考指南（2019）</a><br>
+<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf.git">bpf 内核源代码</a></p>
+
+      <blockquote class="mdui-m-t-5">
+        
+        <strong>本文链接：</strong><a href="https://jony-one.github.io/jony.github.io/b6c56cf840fb/">https://jony-one.github.io/jony.github.io/b6c56cf840fb/</a>
+      </blockquote>
+      
+    </div>
+    <footer class="mdui-card-actions">
+      
+        <a class="mdui-ripple article_categories-link" href="/jony.github.io/categories/eBPF/">eBPF</a>
+      
+      
+        <a class="mdui-ripple article_tags-none-link" href="/jony.github.io/tags/ebpf/" rel="tag">ebpf</a>
+      
+    </footer>
+    
+  </article>
+  
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+  <script>$("#main article .mdui-card-content img.fancybox").on("click",function(e){$.fancybox.open({src:$(this).attr("src")});});</script>
+
+
+  <nav id="paginator">
+    
+      <a rel="prev" class="extend prev" href="/jony.github.io/6b9c54247f6f/">
+        <button aria-label="prev" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_back</i></button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上一篇
+      </a>
+    
+    <div class="spacer"></div>
+    
+      <a rel="next" class="extend next" href="/jony.github.io/9a44115ea383/">
+        下一篇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button aria-label="next" class="mdui-btn mdui-btn-raised mdui-btn-dense mdui-btn-icon mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">arrow_forward</i></button>
+      </a>
+    
+  </nav>
+
+
+  <div id="comment" class="mdui-m-t-5">
+    <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+  var gitalk = new Gitalk({
+    clientID: '1f3bd87bedab703ed26b',
+    clientSecret: '7d0e550c44e851ee7d15da6e864896c0d742691b',
+    repo: 'jony.github.io',
+    owner: 'jony-one',
+    admin: ['jony-one'],
+    id: location.pathname,
+    distractionFreeMode: false
+  });
+  gitalk.render('gitalk-container');
+</script>
+  </div>
+
+
+
+  <div style="position: fixed !important; right: 16px; top: 30%;">
+    <button class="mdui-fab mdui-fab-mini mdui-ripple" mdui-menu="{target: '#toc'}"><i class="mdui-icon material-icons">format_list_numbered</i></button>
+    <ul class="mdui-menu" id="toc">
+      <li class="mdui-menu-item" disabled><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">1.1 指令集</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">注意</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">注意</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">4.</span> <span class="toc-text">指令格式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#op-%E6%8C%87%E4%BB%A4%E5%88%86%E7%B1%BB%EF%BC%88MSB%EF%BC%88%E9%AB%98%E6%AF%94%E7%89%B9%EF%BC%89-%E5%88%B0-LSB%EF%BC%88%E6%9C%80%E4%BD%8E%E6%AF%94%E7%89%B9%EF%BC%89%EF%BC%89%EF%BC%9A"><span class="toc-number">4.0.1.</span> <span class="toc-text">op 指令分类（MSB（高比特） 到 LSB（最低比特））：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%87%E4%BB%A4%E7%B1%BB%E5%88%AB%E5%8C%85%E6%8B%AC%EF%BC%9A"><span class="toc-number">4.0.2.</span> <span class="toc-text">指令类别包括：</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">5.</span> <span class="toc-text">辅助函数、BPF Maps、Object Pinning</span></a></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">6.</span> <span class="toc-text">参考文档</span></a></li></ol></li>
+    </ul>
+  </div>
+</main>
+  <footer id="footer" class="mdui-m-t-5 mdui-p-y-3 mdui-color-theme">
+  <div class="mdui-p-y-0 mdui-text-center">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </div>
+  <div class="mdui-p-y-1 mdui-text-center">
+    Copyright &copy; 2020 - 2021 Jony.Z.Y<br>
+    Powered by <a href="https://hexo.io/" target="_blank" class="mdui-text-color-theme-accent">Hexo</a>
+    
+  </div>
+</footer>
+  <button id="gotop" class="mdui-fab mdui-fab-fixed mdui-fab-hide mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">arrow_upward</i></button>
+  
+  
+<script src="/jony.github.io/js/mdui.js"></script>
+<script src="/jony.github.io/js/script.js"></script>
+
+</body>
+</html>

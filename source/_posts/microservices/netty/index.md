@@ -52,7 +52,8 @@ EventLoop 定义了 Netty 的核心抽象，用于处理连接的生命周期中
 
 ## ChannelHandler
 
-应用开发者角度看 Netty 的主要组件时 ChannelHandler ，因为它充当了整个出站和入站处理逻辑的容器。ChannelHandler 可专门用于几乎任何类型的动作，例如数据格式转换、异常处理等。通常一个应用程序有一个至多个 ChannelHandler。
+应用开发者角度看 Netty 的主要组件时 ChannelHandler ，因为它充当了整个出站和入站处理逻辑的容器。ChannelHandler 可专门用于几乎任何类型的动作，
+例如数据格式转换、异常处理等。通常一个应用程序有一个至多个 ChannelHandler。
 
 - 编码器和解码就是 ChannelHandler
 	- 入栈：将字节转换为一种对象，ByteToMessageDecoder。将对象转为字节，MessageToByteEncoder

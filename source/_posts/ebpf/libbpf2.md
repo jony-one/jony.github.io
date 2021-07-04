@@ -355,33 +355,179 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
 ```
 
 如果不是用 libbpf 的话那么可以用命令行来加载，但是 libbpf 将整个过程简化了很多不需要记住这么多命令就可以直接加载到 tc 触发运行。所以需要编写用户空间代码。
-代码如下：
+
+先了解下如何通过指定 section 来加载 ebpf 程序：
+
+`sec_xdp.bpf.c`
+```c
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
 
 
+SEC("xdp_pass")
+int xdp_pass_func(struct xdp_md *ctx)
+{
+    bpf_printk("XDP_PASS --------->\n");
+    return XDP_PASS;
+}
+
+SEC("xpd_drop")
+int xdp_drop_func(struct xdp_md *ctx)
+{
+    bpf_printk("XDP_DROP --------->\n");
+    return XDP_PASS;
+}
+
+char _license[] SEC("license") = "GPL";
+```
+
+`sec_xdp.c` 加载程序
+```c
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <getopt.h>
+
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+
+#include <net/if.h>
+#include <linux/if_link.h> 
+
+#include "common_defines.h"
+
+int xdp_link_attach(int ifindex, __u32 xdp_flags, int prog_fd)
+{
+  int err;
+
+  err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
+  if (err == -EEXIST && !(xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
+
+    __u32 old_flags = xdp_flags;
+
+    xdp_flags &= ~XDP_FLAGS_MODES;
+    xdp_flags |= (old_flags & XDP_FLAGS_SKB_MODE) ? XDP_FLAGS_DRV_MODE : XDP_FLAGS_SKB_MODE;
+    err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
+    if (!err)
+      err = bpf_set_link_xdp_fd(ifindex, prog_fd, old_flags);
+  }
+  if (err < 0) {
+    fprintf(stderr, "ERR: "
+      "ifindex(%d) link set xdp fd failed (%d): %s\n",
+      ifindex, -err, strerror(-err));
+
+    switch (-err) {
+    case EBUSY:
+    case EEXIST:
+      fprintf(stderr, "Hint: XDP already loaded on device"
+        " use --force to swap/replace\n");
+      break;
+    case EOPNOTSUPP:
+      fprintf(stderr, "Hint: Native-XDP not supported"
+        " use --skb-mode or --auto-mode\n");
+      break;
+    default:
+      break;
+    }
+    return -1;
+  }
+
+  return 0;
+}
+
+int main()
+{
+    const char *filename = "sec_xdp.bpf.o";
+    const char *progsec = "xdp_pass";
+    int err;
+    int prog_fd;
+    int first_prog_fd = -1;
+    int ifindex = 0;
+    struct bpf_object *bpf_obj;
+    struct bpf_program *bpf_prog;
+
+    int xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_SKB_MODE;
+
+    // define xdp attr
+    struct bpf_prog_load_attr prog_load_attr = {
+    .prog_type = BPF_PROG_TYPE_XDP,
+    .ifindex   = ifindex,
+  };
+    prog_load_attr.file = filename;
+    printf("start load file %s \n",prog_load_attr.file);
 
 
+    // load xdp file
+    err = bpf_prog_load_xattr(&prog_load_attr, &bpf_obj, &first_prog_fd);
+    if(err < 0){
+        fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
+      filename, err, strerror(-err));
+        goto out;
+    }
+    // find section 
+    bpf_prog = bpf_object__find_program_by_title(bpf_obj, progsec);
+    if (!bpf_prog) 
+    {
+        fprintf(stderr, "ERR: finding progsec: %s\n", progsec);
+        goto out;
+    }
+  // 读取指令文件
+    prog_fd = bpf_program__fd(bpf_prog);
+    if (prog_fd <= 0) {
+    fprintf(stderr, "ERR: bpf_program__fd failed\n");
+    goto out;
+  }    
+    // attach xdp file
+    err = xdp_link_attach(2, xdp_flags, prog_fd);
+    
+    if (err)
+  {
+        goto out;
+    }
+
+out:
+    return 0;
+}
+```
+
+通过运行 `sudo ./sec_xdp` 就可以观察到 xdp 程序已经按照 section 去加载了。
+
+```bash
+$ sudo ./sec_xdp                   
+start load file sec_xdp.bpf.o 
+libbpf: elf: skipping unrecognized data section(4) .rodata.str1.1
+$ ip addr|grep xdp
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 xdpgeneric/id:285 qdisc fq_codel state UP group default qlen 1000
+$ sudo cat /sys/kernel/debug/tracing/trace_pipe
+          <idle>-0       [001] ..s. 273632.203008: 0: XDP_PASS --------->
+          <idle>-0       [001] ..s. 273632.203025: 0: XDP_PASS --------->
+```
+**`有个 ifindex 参考值，不知道是什么意思，要查`**
 
 编写代码和测试时常用命令：
 
-  clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I../../libbpf/include/uapi -I../../vmlinux/ \
-  -idirafter /usr/local/include \
-  -idirafter /usr/lib/llvm-11/lib/clang/11.1.0/include \
-  -idirafter /usr/include/x86_64-linux-gnu \
-  -idirafter /usr/include \
-  -c tc_http.bpf.c \
-  -o tc_http.bpf.o
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I../../libbpf/include/uapi -I../../vmlinux/ \
+-idirafter /usr/local/include \
+-idirafter /usr/lib/llvm-11/lib/clang/11.1.0/include \
+-idirafter /usr/include/x86_64-linux-gnu \
+-idirafter /usr/include \
+-c sec_xdp.bpf.c \
+-o sec_xdp.bpf.o
+
+cc -Wall -I../libbpf/src/build/usr/include/ -g -I../headers/ -L../libbpf/src/ -o xdp_loader ../common/common_params.o ../common/common_user_bpf_xdp.o  xdp_loader.c -l:libbpf.a -lelf 
+
+cc -g -Wall -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -c sec_xdp.c -o .output/sec_xdp.o && cc -g -Wall .output/sec_xdp.o /home/vagrant/libbpf-bootstrap/examples/c/.output/libbpf.a -lelf -lz -o sec_xdp
+
+tc filter add dev eth0 ingress bpf da obj sec_xdp.bpf.o sec ingress
+
+tc filter add dev eth0 ingress bpf da obj sec_xdp.bpf.o
+
+
+sudo tc filter del dev eth0 ingress
+sudo ip link set dev eth0 xdp off
 
 
 
-  cc -g -Wall -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -c tc_http.c -o .output/tc_http.o && cc -g -Wall .output/tc_http.o /home/vagrant/libbpf-bootstrap/examples/c/.output/libbpf.a -lelf -lz -o tc_http
-
-  tc filter add dev eth0 ingress bpf da obj tc_http.bpf.o sec ingress
-
-  tc filter add dev eth0 ingress bpf da obj tc_http.bpf.o
-
-
-  sudo tc filter del dev eth0 ingress
-
-
-
-  sudo cat /sys/kernel/debug/tracing/trace_pipe
+sudo cat /sys/kernel/debug/tracing/trace_pipe

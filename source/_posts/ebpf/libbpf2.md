@@ -506,6 +506,331 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 ```
 **`有个 ifindex 参考值，不知道是什么意思，要查`**
 
+
+
+接下来看下如何通过 libbpf 将程序加载到 tc 层：
+
+
+公共部分 `tc_http_common.h`
+
+```c
+#ifndef __TC_HTTP_COMMON
+static const __u32 HTTP = 0;
+static const __u32 GET = 1;
+static const __u32 POST = 2;
+static const __u32 PUT = 3;
+static const __u32 DELETE = 4;
+
+
+struct datarec {
+    __u64 rx_packets;
+};
+#endif
+```
+
+内核处理部分： `tc_http.bpf.c`
+
+```c
+
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
+#include <linux/ip.h>
+#include <linux/in.h>
+#include <linux/tcp.h>
+#include <linux/if_ether.h>
+#include <linux/pkt_cls.h>
+
+#include "tc_http_common.h"
+
+struct eth_hdr
+{
+    unsigned char h_dest[ETH_ALEN];
+    unsigned char h_source[ETH_ALEN];
+    unsigned short h_proto;
+};
+
+struct bpf_map_def SEC("maps") request_map = 
+{
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(struct datarec),
+    .max_entries = 64435,
+};
+
+#ifndef lock_xadd
+#define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
+#endif
+
+SEC("classifier/read")
+int tc_ingress(struct __sk_buff *skb)
+{
+
+    struct datarec *rec;    
+    int err;    
+    if (skb->protocol == bpf_htons(ETH_P_IP))
+    {
+        if (skb->len > 120)
+        {
+            // 获取数据位置
+            void *data = (void *)(long)skb->data;
+            void *data_end = (void *)(long)skb->data_end;
+            
+            // 获取 网卡 header
+            struct eth_hdr *eth = data;
+            // 获取 ip header
+            struct iphdr *iph = data + sizeof(*eth);
+            // 获取 tcp header
+            struct tcphdr *tcp = data + sizeof(*eth) + sizeof(*iph);
+
+            if (data + sizeof(*eth) > data_end)
+            {
+                return TC_ACT_OK;
+            }
+            // 只关心 IPv4 
+            if (!!eth && eth->h_proto == bpf_htons(ETH_P_IP))
+            {
+
+                if (data + sizeof(*eth) + sizeof(*iph) > data_end)
+                {
+                    return TC_ACT_OK;
+                }
+
+                // 只过滤 TCP 
+                if (iph->protocol != IPPROTO_TCP)
+                {
+                    return TC_ACT_OK;
+                }
+
+                // 判断数据是否充足
+                if (data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp) + 27 > data_end)
+                {
+                    return TC_ACT_OK;
+                }
+                // 开始读取报文信息
+                char *body = data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp);
+                // HTTP
+                if (*(body + 0) == 'H' && *(body + 1) == 'T' && *(body + 2) == 'T' && *(body + 3) == 'P')
+                {
+                    rec = bpf_map_lookup_elem(&request_map,&HTTP);
+                    if(rec == NULL){
+                        goto out;
+                    }
+                    lock_xadd(&rec->rx_packets, 1);
+                    bpf_printk("HTTP NOT NULL  %lld\n",rec->rx_packets);
+                    goto out;
+                }
+                // GET 
+                if (*(body + 0) == 'G' && *(body + 1) == 'E' && *(body + 2) == 'T')
+                {
+                    rec = bpf_map_lookup_elem(&request_map,&GET);
+                    if(rec == NULL){
+                        goto out;
+                    }
+                    lock_xadd(&rec->rx_packets, 1);
+                    bpf_printk("GET NOT NULL  %lld\n",rec->rx_packets);
+                    goto out;
+                }
+                // POST
+                if (*(body + 0) == 'P' && *(body + 1) == 'O' && *(body + 2) == 'S' && *(body + 3) == 'T')
+                {
+                    rec = bpf_map_lookup_elem(&request_map,&POST);
+                    if(rec == NULL){
+                        goto out;
+                    }
+                    lock_xadd(&rec->rx_packets, 1);
+                    bpf_printk("POST NOT NULL  %lld\n",rec->rx_packets);
+                    goto out;
+                }
+                // PUT
+                if (*(body + 0) == 'P' && *(body + 1) == 'U' && *(body + 2) == 'T')
+                {
+                    rec = bpf_map_lookup_elem(&request_map,&PUT);
+                    if(rec == NULL){
+                        goto out;
+                    }
+                    lock_xadd(&rec->rx_packets, 1);
+                    bpf_printk("PUT NOT NULL  %lld\n",rec->rx_packets);
+                    goto out;
+                }
+                // DELETE
+                if (*(body + 0) == 'D' && *(body + 1) == 'E' && *(body + 2) == 'L' 
+                && *(body + 3) == 'E' && *(body + 4) == 'T' && *(body + 5) == 'E')
+                {
+                    rec = bpf_map_lookup_elem(&request_map,&DELETE);
+                    if(rec == NULL){
+                        goto out;
+                    }
+                    lock_xadd(&rec->rx_packets, 1);
+                    bpf_printk("DELETE NOT NULL  %lld\n",rec->rx_packets);
+                    goto out;
+                }
+            }
+        }
+    }
+out:
+    return TC_ACT_OK;
+}
+
+char _license[] SEC("license") = "GPL";
+```
+
+用户空间处理函数：`tc_http.c`
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <getopt.h>
+#include <sys/resource.h>
+
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+
+#include <net/if.h>
+#include <linux/if_link.h>
+
+#include "tc_http_common.h"
+
+int load_bpf_file(char *filename)
+{
+    return 0;
+}
+
+void find_map_value(int map_fd, __u32 key)
+{
+    // 查下值
+    struct datarec rec;
+    int err;
+    err = bpf_map_lookup_elem(map_fd, &key, &rec);
+    if (err == 0)
+    {
+        if (key == GET)
+        {
+            printf("GET %lld \n", rec.rx_packets);
+        }
+
+        if (key == PUT)
+        {
+            printf("PUT %lld \n", rec.rx_packets);
+        }
+        if (key == POST)
+        {
+            printf("POST %lld \n", rec.rx_packets);
+        }
+        if (key == DELETE)
+        {
+            printf("DELETE %lld \n", rec.rx_packets);
+        }
+    }
+    else
+    {
+        fprintf(stderr, "bpf_map_lookup_elem error %d \n", err);
+    }
+}
+
+int main()
+{
+
+    DECLARE_LIBBPF_OPTS(bpf_tc_hook, hook, .attach_point = BPF_TC_INGRESS);
+    DECLARE_LIBBPF_OPTS(bpf_tc_opts, attach_pre);
+    DECLARE_LIBBPF_OPTS(bpf_tc_opts, attach_post);
+
+    // BPF 程序名称
+    char *filename = "tc_http.bpf.o";
+
+    // 网卡名称
+    int eth_index = 2;
+
+    // 错误码
+    int err;
+
+    // bpf map
+
+    char *map_name = "request_map";
+    struct bpf_map *map;
+    int map_fd = -1;
+
+    // open bpf file
+    struct bpf_object *bpf_fd = bpf_object__open(filename);
+
+    err = libbpf_get_error(bpf_fd);
+    if (err)
+    {
+        fprintf(stderr, "Couldn't open file: %s\n", filename);
+        goto out;
+    }
+
+    // load bpf
+    err = bpf_object__load(bpf_fd);
+
+    if (err)
+    {
+        fprintf(stderr, "BPF Load Faile\n");
+        goto out;
+    }
+
+    // read tc_ingress section
+    attach_pre.prog_fd = bpf_program__fd(bpf_object__find_program_by_name(bpf_fd, "tc_ingress"));
+    if (attach_pre.prog_fd < 0)
+    {
+        fprintf(stderr, "Find BPF Section tc_ingress Fail\n");
+        goto out;
+    }
+
+    hook.ifindex = eth_index;
+    // 创建 hook 点  设置触发点
+    err = bpf_tc_hook_create(&hook);
+    if (err)
+    {
+        fprintf(stderr, "Create Hook Fail\n");
+        goto out;
+    }
+
+    // attach hook
+    err = bpf_tc_attach(&hook, &attach_pre);
+    if (err)
+    {
+        fprintf(stderr, "Attach Hook Fail\n");
+        goto out;
+    }
+
+    printf("Successfully started! Please run `sudo cat /sys/kernel/debug/tracing/trace_pipe` "
+           "to see output of the BPF programs.\n");
+
+    // find map
+    printf("find Map \n");
+    map = bpf_object__find_map_by_name(bpf_fd, map_name);
+    map_fd = bpf_map__fd(map);
+    if (map_fd < 0)
+    {
+        printf("map read fail\n");
+        goto out;
+    }
+    printf("start epoll\n");
+    while (1)
+    {
+        find_map_value(map_fd, GET);
+        find_map_value(map_fd, PUT);
+        find_map_value(map_fd, POST);
+        find_map_value(map_fd, DELETE);
+        printf("\n\n\n\n");
+        sleep(2);
+    }
+
+out:
+    bpf_object__close(bpf_fd);
+    return 0;
+}
+```
+
+
+到这里基本上已经完成了，libbpf 统计 HTTP 请求部分。也就是说基本可以读取到 L7 的数据了。
+
+
+** 下一章看如何监控 URL **
+
+
 编写代码和测试时常用命令：
 
 clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I../../libbpf/include/uapi -I../../vmlinux/ \
@@ -527,6 +852,7 @@ tc filter add dev eth0 ingress bpf da obj sec_xdp.bpf.o
 
 sudo tc filter del dev eth0 ingress
 sudo ip link set dev eth0 xdp off
+sudo tc qdisc del dev eth0 clsact
 
 
 

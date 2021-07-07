@@ -1,6 +1,6 @@
 ---
-title: 用ebpf编写XDP网络过滤器 译
-date: 2021-06-14 19:44:19
+title: 用ebpf编写网络监控
+date: 2021-07-07 14:58:19
 categories: 
 	- [eBPF]
 tags:
@@ -9,29 +9,109 @@ tags:
 author: Jony
 ---
 
-# 用ebpf编写XDP网络过滤器 
-原文:[https://duo.com/labs/tech-notes/writing-an-xdp-network-filter-with-ebpf](https://duo.com/labs/tech-notes/writing-an-xdp-network-filter-with-ebpf)
+# 用ebpf 编写网络监控
 
-在2019年Kubecon大会上，有很多很棒的演讲提到eBPF是一种非常强大的工具，用于监控、创建审计跟踪，甚至高性能网络。Cilium的一个演讲描述了eBPF和XDP如何将Kubernetes从iptables中解放出来，这个演讲非常有趣，因为我们当时正在探索Kubernetes和Istio。仅仅因为这听起来像是一种非常棒的技术，我们便花了一些侧循环去提升我们对于eBPF如何工作以及它可以在何处使用的理解。
-在本文中，我将更多地关注XDP，而不是通用的eBPF。与可以监视系统的大多数eBPF使用相比，使用XDP实际上可以在包进入系统的早期时刻修改原始网络流量，甚至在内核有机会处理它们之前。支持“Offloaded”XDP的网卡甚至可以在网卡硬件本身上运行XDP应用程序并处理数据包，而CPU甚至看不到它!太酷了!
+网络流量将空应该在 raw_tracepoint 监控。
+参考文档：[bpf: revolutionize bpf tracing](https://lwn.net/Articles/801992/)、[bpf, tracing: introduce bpf raw tracepoints](https://lwn.net/Articles/748352/)
+
+SO  网络流量监控并不一定要在入口和出口才可以去监控，这里将介绍一个早就已经存在得技术，但是不常见得东东，`kfree_skb` 释放 `skb_buff` ，
+方法名就可以看出用处。
+
+开始之前来复习下如何 trace 内核方法，之前都没有关注过，一直认为不会与内核打交道，看了程序得世界里不会有这种假设了，程序员要死于学习。
+分析下现有得程序吧。代码流程应该与前面得类似
+
+猜测中
+加载器
+1. 指定 BPF 程序
+2. 打开 BPF 程序
+3. 读取 section ，按照 section 读取 program
+4. attach 到函数入口
+5. 获取所有 map_fd 
+6. pin 住 map
+
+BPF 程序
+1. 找到入参
+2. 分析入参
+3. 函数返回值是否参与决断，根据情况返回返回值
+
+看看简单得如下程序：
+
+minimal.bpf.c
+```c
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+
+char LICENSE[] SEC("license") = "Dual BSD/GPL";
+
+int my_pid = 0;
+
+SEC("tp/syscalls/sys_enter_write") // 指定是 tracepoint:syscalls:sys_enter_write
+int handle_tp(void *ctx)  // 因为不需要分析参数所以这里就直接使用了 void * 任何参数类型
+{
+  int pid = bpf_get_current_pid_tgid() >> 32;
+
+  if (pid != my_pid)
+    return 0;
+
+  bpf_printk("BPF triggered from PID %d.\n", pid);
+
+  return 0;
+}
+```
+
+大致调用编译得方式如下：
+
+1. 因为程序依赖 libbpf 所以先将 libbpf 编译为库文件
+```c
+mkdir -p .output
+
+mkdir -p .output/libbpf
+
+make -C /home/vagrant/libbpf-bootstrap/libbpf/src BUILD_STATIC_ONLY=1                    \
+            OBJDIR=/home/vagrant/libbpf-bootstrap/examples/c/.output//libbpf DESTDIR=/home/vagrant/libbpf-bootstrap/examples/c/.output/                     \
+            INCLUDEDIR= LIBDIR= UAPIDIR=                              \
+            install
+```
 
 
-XDP是eXpress Data Path的缩写，它在Linux内核中提供了一个高性能的数据路径，用于在网络数据包到达网卡时进行处理。本质上，
-您可以将XDP程序附加到一个网络接口上，然后每当在该接口上看到一个新包时，这些程序就会得到回调。就是这样。真正的简单。
 
-# 案例
-从小处着手总是好的。对于这个实验，我想从一个可以改变一些东西的程序开始，但是要小，容易测试和可视化。为此，我选择了将UDP数据包的dest端口从7999更改为7998的简单问题。
 
-这很容易可视化和测试。打开3台终端，分别执行如下2条命令:
 
-`nc -kul 127.0.0.1 7999`
 
-`nc -kul 127.0.0.1 7998`
 
-这些终端就是我们的监听过程。我们正在使用nc netcat打开一个套接字，侦听udp数据包进入端口7999和7998的127.0.0.1地址。
-参数-k只是告诉netcat在收到一个数据包后继续监听，这样它就可以从其他客户端接收更多的数据包。
 
-在第三个终端中，运行:
+# 常用命令合集
 
-然后在下一行中，键入一些文本，后跟 `<Enter>`。您应该会看到在第一个终端，监听端口7999中回响的文本。一旦我们将XDP应用程序安装到位，
-    连接到lo环回设备，数据包将在路由中被修改，并转移到监听端口7998的另一个终端。
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I../../libbpf/include/uapi -I../../vmlinux/ \
+-idirafter /usr/local/include \
+-idirafter /usr/lib/llvm-11/lib/clang/11.1.0/include \
+-idirafter /usr/include/x86_64-linux-gnu \
+-idirafter /usr/include \
+-c url_map.bpf.c \
+-o url_map.bpf.o
+
+
+cc -g -Wall -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -c url_map_read.c -o .output/url_map_read.o && cc -g -Wall .output/url_map_read.o /home/vagrant/libbpf-bootstrap/examples/c/.output/libbpf.a -lelf -lz -o url_map_read
+
+cc -g -Wall -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -c url_map.c -o .output/url_map.o && cc -g -Wall .output/url_map.o /home/vagrant/libbpf-bootstrap/examples/c/.output/libbpf.a -lelf -lz -o url_map
+
+tc filter add dev eth0 ingress bpf da obj url_map.bpf.o sec ingress
+tc filter add dev eth0 ingress bpf da obj url_map.bpf.o
+
+sudo tc filter del dev eth0 ingress
+sudo ip link set dev eth0 xdp off
+sudo tc qdisc del dev eth0 clsact
+
+sudo tc qdisc add dev eth0 clsact
+sudo tc qdisc del dev eth0 ingress
+sudo ip link set dev eth0 xdp off && sudo tc qdisc del dev eth0 clsact && sudo ./url_map
+
+
+sudo cat /sys/kernel/debug/tracing/trace_pipe
+
+
+
+git pull && clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -idirafter /usr/local/include -idirafter /usr/lib/llvm-11/lib/clang/11.1.0/include -idirafter /usr/include/x86_64-linux-gnu -idirafter /usr/include -c url_map.bpf.c -o url_map.bpf.o && sudo ip link set dev eth0 xdp off && sudo tc qdisc del dev eth0 clsact && sudo ./url_map
+
+
+git pull && cc -g -Wall -I.output -I../../libbpf/include/uapi -I../../vmlinux/ -c url_map_read.c -o .output/url_map_read.o && cc -g -Wall .output/url_map_read.o /home/vagrant/libbpf-bootstrap/examples/c/.output/libbpf.a -lelf -lz -o url_map_read && sudo ./url_map_read
